@@ -1,0 +1,16 @@
+### Node ###
+/node_modules
+package-lock.json
+
+# Generated files
+/log
+*.log
+
+# Configuration
+/config
+
+# Jetbrains
+.idea
+
+# Yarn
+yarn.lock
