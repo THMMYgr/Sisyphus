@@ -6,6 +6,9 @@ package-lock.json
 /log
 *.log
 
+# Configuration
+/config
+
 # Jetbrains
 .idea
 

@@ -15,10 +15,10 @@ module.exports.init = async function (){
     log.verbose('Firebase initialized.');
 };
 
-module.exports.send = function (data){
+module.exports.send = function (post){
     let message = {
-        data: data,
-        topic: data.topicId
+        data: post,
+        topic: post.topicId
     };
 
     admin.messaging().send(message)
