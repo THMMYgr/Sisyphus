@@ -16,7 +16,7 @@ or via [`npm`](https://www.npmjs.com/):
 npm install
 ```
 
-Then set up the required Firebase configuration by adding a valid `serviceAccountKey.json` in the `config` directory and by editing the first lines of `firebase.js` (refer to [firebase docs](https://firebase.google.com/docs/admin/setup) for more details).
+Then set up the required configuration in the `config` directory by adding a valid `serviceAccountKey.json` there and by editing the `config.json` file (refer to [firebase docs](https://firebase.google.com/docs/admin/setup) for more details).
 
 Finally, start the app either by using yarn:
 

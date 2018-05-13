@@ -1,0 +1,6 @@
+{
+    "firebaseServiceAccountKey": "serviceAccountKey.json",
+    "firebaseDatabaseURL": "https://DATABASE_NAME.firebaseio.com/",
+    "thmmyUsername": "USERNAME",
+    "thmmyPassword": "PASSWORD"
+}

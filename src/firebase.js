@@ -1,11 +1,13 @@
 const log = require('./logger');
 const admin = require('firebase-admin');
-const serviceAccount = require('../config/serviceAccountKey.json');
 
-const databaseURL = 'https://DATABASE_NAME.firebaseio.com/';
-const topic = 'examsResults';
+const config = require('../config/config.json');
+const serviceAccount = require('../config/' + config.firebaseServiceAccountKey);
 
-module.exports.init = function (){
+const databaseURL = config.firebaseDatabaseURL;
+
+
+module.exports.init = async function (){
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         databaseURL: databaseURL
@@ -13,10 +15,10 @@ module.exports.init = function (){
     log.verbose('Firebase initialized.');
 };
 
-module.exports.send = function (data){
+module.exports.send = function (post){
     let message = {
-        data: data,
-        topic: topic
+        data: post,
+        topic: post.topicId
     };
 
     admin.messaging().send(message)
