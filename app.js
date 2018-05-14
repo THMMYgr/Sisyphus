@@ -40,6 +40,9 @@ async function fetch() {
             if(newPostsHash!==postsHash)
             {
                 log.verbose('New posts obtained!');
+                newPosts.forEach(function(post) {
+                    stringifyJSONIntegers(post);
+                });
                 const diff = newPosts.filter(function(newPost) {
                     return !posts.some(function(oldPost) {
                         return newPost.postId === oldPost.postId;
@@ -49,7 +52,7 @@ async function fetch() {
                 posts = newPosts;
                 log.verbose('Sending ' + diff.length + ' new post(s) to Firebase...');
                 for(let i=0; i<diff.length; i++)
-                    firebase.send(stringifyJSONIntegers(diff[i]));
+                    firebase.send(diff[i]);
             }
             else
                 log.verbose('No new posts.');
