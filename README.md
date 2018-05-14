@@ -1,4 +1,5 @@
 # Sisyphus
+[![Dependencies](https://img.shields.io/david/ThmmyNoLife/Sisyphus.svg)](https://david-dm.org/ThmmyNoLife/Sisyphus)
 
 A push notification service backend for mTHMMY.
 
