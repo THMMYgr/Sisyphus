@@ -31,4 +31,4 @@ or npm:
 npm start
 ```
 
-To run it continuously in the background (e.g. in production) you can use something like [`forever`](https://github.com/foreverjs/forever).
+To run it continuously in the background (e.g. in production) you can use something like [`pm2`](https://pm2.keymetrics.io).

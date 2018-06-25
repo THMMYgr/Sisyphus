@@ -1,6 +1,6 @@
 {
   "name": "sisyphus",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Eternally condemned to push data to mTHMMY",
   "private": true,
   "repository": {
@@ -19,6 +19,6 @@
   "dependencies": {
     "firebase-admin": "^5.12.1",
     "thmmy": "^0.3.0",
-    "winston": "^3.0.0-rc5"
+    "winston": "^3.0.0"
   }
 }
