@@ -16,14 +16,9 @@ module.exports.init = async function (){
 };
 
 module.exports.send = function (post){
-    let message = {
-        data: post,
-        topic: post.topicId
-    };
-
-    admin.messaging().send(message)
+    admin.messaging().sendToTopic(post.topicId, {data: post}, {priority: "high"})
         .then((response) => {
-            log.verbose('Firebase: successfully sent message (' + response + ')');
+            log.verbose('Firebase: successfully sent message with messageId: ' + response.messageId);
         })
         .catch((error) => {
             log.error(error);

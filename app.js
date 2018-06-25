@@ -6,13 +6,13 @@ const getRecentPosts = require('thmmy').getRecentPosts;
 const login = require('thmmy').login;
 const config = require('./config/config.json');
 
-const cooldown = 10000;  //Cooldown before next data fetch
+const cooldown = config.dataFetchCooldown;  //Cooldown before next data fetch
 let nIterations = 0;
 
 let cookieJar;
 let postsHash;
 
-let latestTimestamp, latestPostId;
+let latestPostId;
 
 main();
 
@@ -23,7 +23,6 @@ async function main() {
         cookieJar = await login(config.thmmyUsername, config.thmmyPassword);
         let posts = await getRecentPosts({cookieJar:cookieJar});
         postsHash = hash(JSON.stringify(posts));
-        latestTimestamp = posts[0].timestamp;
         latestPostId = posts[0].postId;
         log.info('App started!');
         await fetch();
@@ -46,13 +45,11 @@ async function fetch() {
             {
                 log.verbose('Got a new hash...');
                 postsHash = currentHash;
-                let newPosts = posts.filter(post =>(post.timestamp>=latestTimestamp && post.postId>latestPostId));
+                let newPosts = posts.filter(post => post.postId>latestPostId);
                 if(newPosts.length>0)
                 {
                     log.verbose('Found ' + newPosts.length+ ' new post(s)!');
                     newPosts.forEach(function(post) {
-                        if(post.timestamp>latestTimestamp)
-                            latestTimestamp = post.timestamp;
                         if(post.postId>latestPostId)
                             latestPostId = post.postId;
                         stringifyJSONIntegers(post);

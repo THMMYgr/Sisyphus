@@ -1,7 +1,7 @@
 # Sisyphus
 [![Dependencies](https://img.shields.io/david/ThmmyNoLife/Sisyphus.svg)](https://david-dm.org/ThmmyNoLife/Sisyphus)
 
-A push notification service backend for mTHMMY.
+Backend service that fetches data from [`thmmy.gr`](https://www.thmmy.gr/) and pushes them to  [`mTHMMY`](https://github.com/ThmmyNoLife/mTHMMY) through Firebase.
 
 ## Usage
 
@@ -30,3 +30,5 @@ or npm:
 ```bash
 npm start
 ```
+
+To run it continuously in the background (e.g. in production) you can use something like [`pm2`](https://pm2.keymetrics.io).
