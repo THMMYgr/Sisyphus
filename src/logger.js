@@ -1,4 +1,5 @@
 const { createLogger, format, transports } = require('winston');
+const moment = require('moment-timezone');
 const fs = require( 'fs' );
 const path = require('path');
 const logDir = 'log';
@@ -12,10 +13,16 @@ const logFormat = printf(info => {
     return `[${info.timestamp}] ${info.level}: ${info.message}`;
 });
 
+const appendTimestamp = format((info, opts) => {
+    if(opts.tz)
+        info.timestamp = moment().tz(opts.tz).format();
+    return info;
+});
+
 let logger = createLogger({
     level: 'info',
     format: combine(
-        timestamp(),
+        appendTimestamp({tz: 'Europe/Athens'}),
         logFormat
     ),
     transports: [
