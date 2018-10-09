@@ -23,7 +23,6 @@ const appendTimestamp = format((info, opts) => {
 let logger = createLogger({
     level: 'info',
     format: combine(
-        format.colorize(),
         appendTimestamp({tz: 'Europe/Athens'}),
         logFormat
     ),
@@ -52,6 +51,11 @@ let logger = createLogger({
 if (process.env.NODE_ENV !== 'production') {
     logger.add(new transports.Console({
         level: 'debug',
+        format: combine(
+            format.colorize(),
+            appendTimestamp({tz: 'Europe/Athens'}),
+            logFormat
+        ),
         handleExceptions: true,
     }));
 }

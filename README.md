@@ -89,7 +89,6 @@ pm2 startup ubuntu  # Sets a startup hook
 pm2 save  # Saves current process list
 ```
 
-To monitor Sisyphus use:
-```bash
-pm2 monit
-```
+To monitor Sisyphus use: `pm2 list` and `pm2 monit`.
+
+**Note**: Sisyphus in production is *very* silent. For verbose messages run in development mode (i.e. without `NODE_ENV=production``).

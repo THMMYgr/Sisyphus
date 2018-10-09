@@ -16,6 +16,8 @@ let postsHash;
 
 let latestPostId;
 
+let errorFlag = false;
+
 main();
 
 async function main() {
@@ -28,20 +30,24 @@ async function main() {
         latestPostId = posts[0].postId;
         log.info('App: Started!');
     }
-    catch (e) {
-        log.error(e);
+    catch (error) {
+        log.error('App: ' + error);
+        errorFlag = true;
     }
 
     while(true)
     {
         try{
+            firebase.sendForStatus(errorFlag);
+            log.verbose('App: Cooling down for ' + cooldown/1000 + 's...');
+            await new Promise(resolve => setTimeout(resolve, cooldown));
             await fetch();
+            errorFlag = false;
         }
-        catch (e) {
-            log.error(e);
+        catch (error) {
+            log.error('App: ' + error);
+            errorFlag = true;
         }
-        log.verbose('App: Cooling down for ' + cooldown/1000 + 's...');
-        await new Promise(resolve => setTimeout(resolve, cooldown));
     }
 }
 
