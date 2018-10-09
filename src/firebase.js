@@ -12,15 +12,29 @@ module.exports.init = async function (){
         credential: admin.credential.cert(serviceAccount),
         databaseURL: databaseURL
     });
-    log.verbose('Firebase initialized.');
+    log.verbose('Firebase: initialized.');
 };
 
-module.exports.send = function (post){
-    admin.messaging().sendToTopic(post.topicId, {data: post}, {priority: "high"})
+module.exports.sendForTopic = function (post){
+    const messageInfo = '(topicId, postId) =  (' + post.topicId + ', ' + post.postId +')';
+    admin.messaging().sendToTopic('/topics/' + post.topicId, {data: post}, {priority: "high"})
         .then((response) => {
-            log.verbose('Firebase: successfully sent message with messageId: ' + response.messageId);
+            log.verbose('Firebase: successfully sent message ' + messageInfo + ' with messageId: ' +  response.messageId);
         })
         .catch((error) => {
+            log.verbose('Firebase: error sending message ' + messageInfo);
+            log.error(error);
+        });
+};
+
+module.exports.sendForBoard = function (post){
+    const messageInfo = '(topicId, postId, boardId) =  (' + post.topicId + ', ' + post.postId + ', ' + post.boardId + ')';
+    admin.messaging().sendToTopic('/topics/b' + post.boardId, {data: post}, {priority: "high"})
+        .then((response) => {
+            log.verbose('Firebase: successfully sent message ' + messageInfo + ' with messageId: ' +  response.messageId);
+        })
+        .catch((error) => {
+            log.verbose('Firebase: error sending message ' + messageInfo);
             log.error(error);
         });
 };
