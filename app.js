@@ -3,6 +3,7 @@ const log = require('./src/logger');
 const stringifyJSONIntegers = require('./src/utils').stringifyJSONIntegers;
 const hash = require('./src/utils').hash;
 const getRecentPosts = require('thmmy').getRecentPosts;
+const getTopicBoards = require('thmmy').getTopicBoards;
 const login = require('thmmy').login;
 const config = require('./config/config.json');
 
@@ -33,9 +34,9 @@ async function main() {
 
     while(true)
     {
-        try {
+        try{
             await fetch();
-            log.verbose('Cooling down...');
+            log.verbose('Cooling down for ' + cooldown/1000 + 's...');
             await new Promise(resolve => setTimeout(resolve, cooldown));
         }
         catch (e) {
@@ -47,7 +48,7 @@ async function main() {
 async function fetch() {
     nIterations++;
     log.verbose('Current iteration: ' + nIterations);
-    let posts = await getRecentPosts({cookieJar:cookieJar});
+    let posts = await getRecentPosts({cookieJar: cookieJar});
     if(posts && posts.length>0)
     {
         let currentHash = hash(JSON.stringify(posts));
@@ -58,16 +59,29 @@ async function fetch() {
             let newPosts = posts.filter(post => post.postId>latestPostId);
             if(newPosts.length>0)
             {
-                log.verbose('Found ' + newPosts.length+ ' new post(s)!');
+                log.verbose('Found ' + newPosts.length + ' new post(s)!');
                 newPosts.forEach(function(post) {
                     if(post.postId>latestPostId)
                         latestPostId = post.postId;
                     stringifyJSONIntegers(post);
                 });
 
-                log.verbose('Sending to Firebase...');
-                for(let i=0; i<newPosts.length; i++)
-                    firebase.send(newPosts[newPosts.length-i-1]);
+                newPosts.reverse();
+                newPosts.forEach(function(newPost) {
+                    firebase.sendForTopic(newPost);
+                });
+
+
+                for(let i=0; i<newPosts.length; i++){
+                    let newPost = newPosts[i];
+                    let boards = await getTopicBoards(newPost.topicId, {cookieJar: cookieJar});
+
+                    boards.forEach(function(board) {
+                        let newPostWithBoardInfo = Object.assign(newPost, board);
+                        newPostWithBoardInfo.boardId = newPostWithBoardInfo.boardId.toString();
+                        firebase.sendForBoard(newPostWithBoardInfo);
+                    });
+                }
             }
             else
                 log.verbose('...but no new posts.');
