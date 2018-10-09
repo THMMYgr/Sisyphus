@@ -1,4 +1,5 @@
 const { createLogger, format, transports } = require('winston');
+require('winston-daily-rotate-file');
 const moment = require('moment-timezone');
 const fs = require( 'fs' );
 const path = require('path');
@@ -22,14 +23,27 @@ const appendTimestamp = format((info, opts) => {
 let logger = createLogger({
     level: 'info',
     format: combine(
+        format.colorize(),
         appendTimestamp({tz: 'Europe/Athens'}),
         logFormat
     ),
     transports: [
-        new transports.File({filename: path.join(logDir, '/info.log')})
+        new transports.DailyRotateFile({
+            filename: 'Sisyphus-%DATE%-info.log',
+            dirname: logDir,
+            datePattern: 'YYYY-MM-DD',
+            maxSize: '10m',
+            maxFiles: '30d'
+        })
     ],
     exceptionHandlers: [
-        new transports.File({ filename: path.join(logDir, '/exceptions.log') })
+        new transports.DailyRotateFile({
+            filename: 'Sisyphus-%DATE%-exceptions.log',
+            dirname: logDir,
+            datePattern: 'YYYY-MM-DD',
+            maxSize: '10m',
+            maxFiles: '30d'
+        })
     ],
     handleExceptions: true,
     exitOnError: false
