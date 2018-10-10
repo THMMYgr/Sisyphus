@@ -35,6 +35,8 @@ npm start
 
 ### Production
 
+#### Initial setup
+
 A quick proposed way to set up everything in production from scratch is the following (Ubuntu server):
 
 Open a root terminal to make sure you don't run into permission problems:
@@ -75,7 +77,7 @@ Edit the *config/config.json* file (e.g. with `nano config/config.json`), add a 
 ```bash
 cp -rf config Sisyphus-prod
 ```
-**Note**: Refer to [firebase docs](https://firebase.google.com/docs/admin/setup) for more details about the *serviceAccountKey.json* file. 
+**Note**: Refer to [firebase docs](https://firebase.google.com/docs/admin/setup) for more details about the *serviceAccountKey.json* file.
 
 Install dependencies and run Sisyphus using pm2:
 ```bash
@@ -92,7 +94,7 @@ pm2 save  # Saves current process list
 
 To monitor Sisyphus use: `pm2 list` and `pm2 monit`.
 
-**Note**: Sisyphus in production is *very* silent. For verbose messages run in development mode (i.e. without `NODE_ENV=production`).
+**Note**: Sisyphus in production is rather silent. For verbose messages, run in development mode (i.e. without `NODE_ENV=production`).
 
 #### Updating
 

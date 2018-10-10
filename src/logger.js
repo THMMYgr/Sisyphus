@@ -2,7 +2,6 @@ const { createLogger, format, transports } = require('winston');
 require('winston-daily-rotate-file');
 const moment = require('moment-timezone');
 const fs = require( 'fs' );
-const path = require('path');
 const logDir = 'log';
 
 if (!fs.existsSync(logDir))
@@ -56,10 +55,12 @@ if (process.env.NODE_ENV !== 'production') {
             appendTimestamp({tz: 'Europe/Athens'}),
             logFormat
         ),
-        handleExceptions: true,
+        handleExceptions: true
     }));
 }
 
-logger.verbose('Logger initialized.');
+process.on('unhandledRejection', function (reason) {
+    throw reason;   // Will be handled by winston
+});
 
 module.exports = logger;

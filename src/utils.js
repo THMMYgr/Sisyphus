@@ -6,7 +6,7 @@ module.exports.hash = function (string)
 };
 
 //Helper function (Firebase FCM does not accept integers as JSON values)
-module.exports.stringifyJSONIntegers = function (json)
+module.exports.stringifyJSONValues = function (json)
 {
     for (let k in json)
         if (json.hasOwnProperty(k))
