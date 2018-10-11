@@ -57,6 +57,15 @@ if (process.env.NODE_ENV !== 'production') {
         ),
         handleExceptions: true
     }));
+} else {
+    logger.add(new transports.Console({
+        level: 'info',
+        format: combine(
+            appendTimestamp({tz: 'Europe/Athens'}),
+            logFormat
+        ),
+        handleExceptions: true
+    }));
 }
 
 process.on('unhandledRejection', function (reason) {
