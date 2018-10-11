@@ -7,7 +7,8 @@ const serviceAccount = require('../config/' + config.firebaseServiceAccountKey);
 
 const databaseURL = config.firebaseDatabaseURL;
 
-const retryBaseCooldown  = 1000;
+const reattemptCooldown  = 2000;
+const maxAttempts = 15;
 
 async function init(){
     admin.initializeApp({
@@ -17,37 +18,39 @@ async function init(){
     log.verbose('Firebase: Initialization successful!');
 }
 
-function sendForTopic(post, retryCooldown = retryBaseCooldown/2){
-    const messageInfo = '(topicId, postId)=(' + post.topicId + ', ' + post.postId +')';
-    admin.messaging().sendToTopic('/topics/' + post.topicId, {data: post}, {priority: "high"})
+
+function send(topic, post, attempt=1)  {
+    let messageInfo;
+    if (!post.boardId)
+        messageInfo = 'TOPIC message (topicId, postId)=(' + post.topicId + ', ' + post.postId +')';
+    else
+        messageInfo = 'BOARD message (boardId, topicId, postId)=(' + post.boardId + ', ' + post.topicId + ', ' + post.postId + ')';
+
+    admin.messaging().sendToTopic('/topics/' + topic, {data: post}, {priority: "high"})
         .then((response) => {
-            log.info('Firebase: Successfully sent TOPIC message ' + messageInfo + ' with messageId: ' +  response.messageId);
+            log.info('Firebase: Successfully sent ' + messageInfo + ' with messageId: ' +  response.messageId);
         })
         .catch((error) => {
-            log.error('Firebase: Error sending TOPIC message ' + messageInfo);
+            log.error('Firebase: Error sending ' + messageInfo + ' (attempt ' + attempt +')');
             logFirebaseError(error);
-            log.info('Firebase: Retrying in ' + (retryCooldown*2)/1000 +'s...');
-            setTimeout(sendForTopic, retryCooldown*2, post, retryCooldown*2);
-
+            if(attempt < maxAttempts) {
+                attempt++;
+                log.info('Firebase: Retrying to send ' + messageInfo + ' in ' + reattemptCooldown/1000 + 's...');
+                setTimeout(send, reattemptCooldown, topic, post, attempt);
+            } else{
+                if (!post.boardId)
+                    undeliveredNewPosts++;
+                log.error('Firebase: Maximum number of attempts reached. ' + messageInfo + ' will not be delivered.');
+            }
         });
 }
 
-function sendForBoard(post, retryCooldown = retryBaseCooldown/2){
-    const messageInfo = '(boardId, topicId, postId)=(' + post.boardId + ', ' + post.topicId + ', ' + post.postId + ')';
-    admin.messaging().sendToTopic('/topics/b' + post.boardId, {data: post}, {priority: "high"})
-        .then((response) => {
-            log.info('Firebase: Successfully sent BOARD message ' + messageInfo + ' with messageId: ' +  response.messageId);
-        })
-        .catch((error) => {
-            log.error('Firebase: Error sending BOARD message ' + messageInfo);
-            logFirebaseError(error);
-            log.info('Firebase: Retrying in ' + (retryCooldown*2)/1000 +'s...');
-            setTimeout(sendForBoard, retryCooldown*2, post, retryCooldown*2);
-        });
-}
+const appStartTimestamp = + new Date();
+let undeliveredNewPosts = 0;
 
-function sendForStatus(lastErrorTimestamp){
-    const data = stringifyJSONValues({timestamp: (+ new Date()), lastErrorTimestamp: lastErrorTimestamp, appStartTimestamp: appStartTimestamp});
+function sendStatus(lastErrorTimestamp){
+    const data = stringifyJSONValues({timestamp: (+ new Date()),
+        lastErrorTimestamp: lastErrorTimestamp, appStartTimestamp: appStartTimestamp, undeliveredNewPosts: undeliveredNewPosts});
     admin.messaging().sendToTopic('/topics/status', {data: data}, {priority: "high"})
         .then((response) => {
             log.verbose('Firebase: Successfully sent STATUS message ' + JSON.stringify(data) + ' with messageId: ' +  response.messageId);
@@ -58,9 +61,6 @@ function sendForStatus(lastErrorTimestamp){
         });
 }
 
-let appStartTimestamp;
-
-function setAppStartTimestamp(timestamp){appStartTimestamp=timestamp;}
 
 function logFirebaseError(error){
     if(error.errorInfo.code)
@@ -71,8 +71,6 @@ function logFirebaseError(error){
 
 module.exports = {
     init,
-    sendForTopic,
-    sendForBoard,
-    sendForStatus,
-    setAppStartTimestamp
+    send,
+    sendStatus
 };

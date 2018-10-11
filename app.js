@@ -3,6 +3,7 @@ const firebase = require('./src/firebase');
 const log = require('./src/logger');
 const stringifyJSONValues = require('./src/utils').stringifyJSONValues;
 const hash = require('./src/utils').hash;
+const isThmmyReachable = require('./src/utils').isThmmyReachable;
 const getRecentPosts = require('thmmy').getRecentPosts;
 const getTopicBoards = require('thmmy').getTopicBoards;
 const login = require('thmmy').login;
@@ -23,8 +24,6 @@ main();
 async function main() {
     try{
         log.info('App: Sisyphus v' + version + ' started!');
-        firebase.setAppStartTimestamp(+ new Date());
-        log.verbose('App: Initializing...');
         await firebase.init();
         cookieJar = await login(config.thmmyUsername, config.thmmyPassword);
         let posts = await getRecentPosts({cookieJar: cookieJar});
@@ -39,15 +38,31 @@ async function main() {
     while(true)
     {
         try{
-            firebase.sendForStatus(lastErrorTimestamp);
+            firebase.sendStatus(lastErrorTimestamp);
+            await fetch();
             log.verbose('App: Cooling down for ' + cooldown/1000 + 's...');
             await new Promise(resolve => setTimeout(resolve, cooldown));
-            await fetch();
         }
         catch (error) {
             log.error('App: ' + error);
             lastErrorTimestamp = + new Date();
+            try{
+                if(!await isThmmyReachable()){
+                    log.error('App: Lost connection to thmmy.gr. Waiting to be restored...');
+                    while(!await isThmmyReachable())
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    log.info('App: Connection to thmmy.gr is restored!');
+                }
+            }
+            catch (error) {
+                log.error('App: ' + error);
+            }
+
         }
+
+
+
+
 
     }
 }
@@ -62,7 +77,6 @@ async function fetch() {
         if(currentHash!==postsHash)
         {
             log.verbose('App: Got a new hash...');
-            postsHash = currentHash;
             let newPosts = posts.filter(post => post.postId>latestPostId);
             if(newPosts.length>0)
             {
@@ -79,22 +93,25 @@ async function fetch() {
                 for(let i=0; i<newPosts.length; i++){
                     let boards = await getTopicBoards(newPosts[i].topicId, {cookieJar: cookieJar});
                     boards.forEach(function(board) {
-                        let newPostWithBoardInfo = Object.assign(newPosts[i], board);
-                        newPostWithBoardInfo.boardId = newPostWithBoardInfo.boardId.toString();
-                        newBoardPosts.push(newPostWithBoardInfo);
+                        let newBoardPost = JSON.parse(JSON.stringify(newPosts[i]));   // Deep cloning
+                        newBoardPost = Object.assign(newBoardPost, board);
+                        newBoardPost.boardId = newBoardPost.boardId.toString();
+                        newBoardPosts.push(newBoardPost);
                     });
                 }
 
                 newPosts.forEach(function(newPost) {
-                    firebase.sendForTopic(newPost);
+                    firebase.send(newPost.topicId, newPost);
                 });
 
-                newBoardPosts.forEach(function(newPostWithBoardInfo) {
-                    firebase.sendForBoard(newPostWithBoardInfo);
+                newBoardPosts.forEach(function(newBoardPost) {
+                    firebase.send('b'+ newBoardPost.boardId, newBoardPost);
                 });
             }
             else
-                log.verbose('App: ...but no new posts.');
+                log.verbose('App: ...but no new posts were found.');
+
+            postsHash = currentHash;    // This belongs here to make Sisyphus retry for this hash in case of error
         }
         else
             log.verbose('App: No new posts.');
