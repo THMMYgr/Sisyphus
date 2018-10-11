@@ -56,6 +56,13 @@ Install node using nvm:
 nvm install node
 ```
 
+Allow npm update checks with:
+```bash
+exit  # To exit root terminal
+chown -R $USER:$(id -gn $USER) /home/user/.config
+sudo -s # To enter root terminal again
+```
+
 Install [yarn](https://yarnpkg.com/) and [pm2](https://pm2.io/) globally using npm. Also install [pm2-logrotate](https://github.com/keymetrics/pm2-logrotate):
 ```bash
 npm install -g yarn pm2
@@ -92,11 +99,13 @@ pm2 startup ubuntu  # Sets a startup hook
 pm2 save  # Saves current process list
 ```
 
-To monitor Sisyphus use: `pm2 list` and `pm2 monit`.
+To monitor Sisyphus you can use `pm2 list` and `pm2 monit` as root.
 
 **Note**: Sisyphus is rather silent in production. For verbose log messages, run in development mode (i.e. without `NODE_ENV=production`).
 
 #### Updating
+
+**Note**: Run the commands below as root.
 
 You can update pm2 with:
 ```bash

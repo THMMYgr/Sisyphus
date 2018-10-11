@@ -57,13 +57,7 @@ async function main() {
             catch (error) {
                 log.error('App: ' + error);
             }
-
         }
-
-
-
-
-
     }
 }
 
