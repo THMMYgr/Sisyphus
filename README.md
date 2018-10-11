@@ -94,7 +94,7 @@ pm2 save  # Saves current process list
 
 To monitor Sisyphus use: `pm2 list` and `pm2 monit`.
 
-**Note**: Sisyphus in production is rather silent. For verbose messages, run in development mode (i.e. without `NODE_ENV=production`).
+**Note**: Sisyphus is rather silent in production. For verbose log messages, run in development mode (i.e. without `NODE_ENV=production`).
 
 #### Updating
 
