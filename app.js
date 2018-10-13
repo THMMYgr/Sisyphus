@@ -38,6 +38,10 @@ async function main() {
     while(true)
     {
         try{
+            if(!cookieJar.getCookieString('https://www.thmmy.gr').includes('THMMYgrC00ki3')) {
+                cookieJar = await login(config.thmmyUsername, config.thmmyPassword);    // Refresh cookieJar
+                log.info('App: CookieJar refreshed.');
+            }
             firebase.sendStatus(lastErrorTimestamp);
             await fetch();
             log.verbose('App: Cooling down for ' + cooldown/1000 + 's...');
