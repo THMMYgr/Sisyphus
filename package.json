@@ -1,6 +1,6 @@
 {
   "name": "sisyphus",
-  "version": "0.4.4",
+  "version": "0.5.0",
   "description": "Eternally condemned to push data to mTHMMY.",
   "private": true,
   "repository": {
@@ -14,14 +14,14 @@
   },
   "main": "app.js",
   "scripts": {
-    "start": "node ./app.js"
+    "start": "node app.js"
   },
   "dependencies": {
-    "firebase-admin": "^6.0.0",
+    "firebase-admin": "^6.1.0",
     "is-reachable": "^2.4.0",
-    "moment-timezone": "^0.5.21",
+    "moment-timezone": "^0.5.23",
     "thmmy": "^0.4.0",
     "winston": "^3.1.0",
-    "winston-daily-rotate-file": "^3.3.3"
+    "winston-daily-rotate-file": "^3.5.1"
   }
 }
