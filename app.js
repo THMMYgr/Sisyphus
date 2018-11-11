@@ -8,16 +8,10 @@ const getRecentPosts = require('thmmy').getRecentPosts;
 const getTopicBoards = require('thmmy').getTopicBoards;
 const login = require('thmmy').login;
 const config = require('./config/config.json');
-const cooldown = config.dataFetchCooldown;  //Cooldown before next data fetch
+const dataFetchCooldown = config.dataFetchCooldown;  //Cooldown before next data fetch
 
-let nIterations = 0;
-
-let cookieJar;
-let postsHash;
-
-let latestPostId;
-
-let lastErrorTimestamp;
+const reachableCheckCooldown = 2000;
+let nIterations = 0, cookieJar, postsHash, latestPostId;
 
 main();
 
@@ -40,21 +34,19 @@ async function main() {
         try{
             if(!cookieJar.getCookieString('https://www.thmmy.gr').includes('THMMYgrC00ki3')) {
                 cookieJar = await login(config.thmmyUsername, config.thmmyPassword);    // Refresh cookieJar
-                log.info('App: CookieJar refreshed.');
+                log.info('App: CookieJar was refreshed.');
             }
-            firebase.sendStatus(lastErrorTimestamp);
             await fetch();
-            log.verbose('App: Cooling down for ' + cooldown/1000 + 's...');
-            await new Promise(resolve => setTimeout(resolve, cooldown));
+            log.verbose('App: Cooling down for ' + dataFetchCooldown/1000 + 's...');
+            await new Promise(resolve => setTimeout(resolve, dataFetchCooldown));
         }
         catch (error) {
             log.error('App: ' + error);
-            lastErrorTimestamp = + new Date();
             try{
                 if(!await isThmmyReachable()){
                     log.error('App: Lost connection to thmmy.gr. Waiting to be restored...');
                     while(!await isThmmyReachable())
-                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        await new Promise(resolve => setTimeout(resolve, reachableCheckCooldown));
                     log.info('App: Connection to thmmy.gr is restored!');
                 }
             }
