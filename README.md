@@ -7,7 +7,7 @@ Backend service that fetches data from [thmmy.gr](https://www.thmmy.gr/) and pus
 
 ### Development
 
-Install dependepcies using [yarn](https://yarnpkg.com/) (recommended):
+Install dependencies using [yarn](https://yarnpkg.com/) (recommended):
 
 ```bash
 yarn
@@ -59,19 +59,20 @@ nvm install node
 Allow npm update checks with:
 ```bash
 exit  # To exit root terminal
-chown -R $USER:$(id -gn $USER) /home/user/.config
+sudo chown -R $USER:$(id -gn $USER) /home/$USER/.config
 sudo -s # To enter root terminal again
 ```
 
-Install [yarn](https://yarnpkg.com/) and [pm2](https://pm2.io/) globally using npm. Also install [pm2-logrotate](https://github.com/keymetrics/pm2-logrotate):
+Install [yarn](https://yarnpkg.com/) and [pm2](https://pm2.io/) globally. Also install [pm2-logrotate](https://github.com/keymetrics/pm2-logrotate):
 ```bash
-npm install -g yarn pm2
+npm install -g yarn
+yarn global add pm2
 pm2 install pm2-logrotate
 ```
 
 Clone Sisyphus using git:
 ```bash
-git clone https://github.com/ThmmyNoLife/Sisyphus.git Sisyphus-prod
+git clone --depth=1 https://github.com/ThmmyNoLife/Sisyphus.git Sisyphus-prod
 ```
 
 Create a directory name *config* where a backup of the required configuration will be kept. After that, copy the template *config.json* file from the *Sisyphus-prod/config* directory to *config*:
@@ -109,13 +110,18 @@ To monitor Sisyphus you can use `pm2 list` and `pm2 monit` as root.
 
 You can update pm2 with:
 ```bash
-npm install pm2 -g
+yarn global add pm2
 pm2 update  # Updates the in-memory PM2 process
 ```
 
 To update node (and npm):
 ```bash
 nvm install node --reinstall-packages-from=node # Installs the latest node version
+```
+
+To update yarn:
+```bash
+npm install -g yarn
 ```
 
 To update nvm, check [here](https://github.com/creationix/nvm) for the latest install script.

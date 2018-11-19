@@ -29,8 +29,7 @@ async function main() {
         throw new Error('App: ' + error);
     }
 
-    while(true)
-    {
+    while(true) {
         try{
             if(!cookieJar.getCookieString('https://www.thmmy.gr').includes('THMMYgrC00ki3')) {
                 cookieJar = await login(config.thmmyUsername, config.thmmyPassword);    // Refresh cookieJar
@@ -61,15 +60,12 @@ async function fetch() {
     nIterations++;
     log.verbose('App: Current iteration: ' + nIterations);
     let posts = await getRecentPosts({cookieJar: cookieJar});
-    if(posts && posts.length>0)
-    {
+    if(posts && posts.length>0) {
         let currentHash = hash(JSON.stringify(posts));
-        if(currentHash!==postsHash)
-        {
+        if(currentHash!==postsHash) {
             log.verbose('App: Got a new hash...');
             let newPosts = posts.filter(post => post.postId>latestPostId);
-            if(newPosts.length>0)
-            {
+            if(newPosts.length>0) {
                 log.verbose('App: Found ' + newPosts.length + ' new post(s)!');
                 newPosts.forEach(function(post) {
                     if(post.postId>latestPostId)
@@ -80,7 +76,7 @@ async function fetch() {
                 newPosts.reverse();
 
                 let newBoardPosts = [];
-                for(let i=0; i<newPosts.length; i++){
+                for(let i=0; i<newPosts.length; i++) {
                     let boards = await getTopicBoards(newPosts[i].topicId, {cookieJar: cookieJar});
                     boards.forEach(function(board) {
                         let newBoardPost = JSON.parse(JSON.stringify(newPosts[i]));   // Deep cloning

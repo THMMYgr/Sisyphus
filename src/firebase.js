@@ -9,7 +9,7 @@ const databaseURL = config.firebaseDatabaseURL;
 const reattemptCooldown  = 2000;
 const maxAttempts = 100;
 
-async function init(){
+async function init() {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         databaseURL: databaseURL
@@ -17,7 +17,7 @@ async function init(){
     log.verbose('Firebase: Initialization successful!');
 }
 
-function send(topic, post, attempt=1)  {
+function send(topic, post, attempt=1) {
     let messageInfo;
     if (!post.boardId)
         messageInfo = 'TOPIC message (topicId: ' + post.topicId + ', postId: ' + post.postId +')';
@@ -40,7 +40,7 @@ function send(topic, post, attempt=1)  {
         });
 }
 
-function logFirebaseError(error){
+function logFirebaseError(error) {
     (error.errorInfo && error.errorInfo.code) ? log.error('Firebase: ' + error.errorInfo.code) : log.error('Firebase: ' + error);
 }
 
