@@ -82,6 +82,7 @@ async function fetch() {
                         let newBoardPost = JSON.parse(JSON.stringify(newPosts[i]));   // Deep cloning
                         newBoardPost = Object.assign(newBoardPost, board);
                         newBoardPost.boardId = newBoardPost.boardId.toString();
+                        newBoardPost.boardIds = JSON.stringify(boards.map(b => b.boardId));
                         newBoardPosts.push(newBoardPost);
                     });
                 }
