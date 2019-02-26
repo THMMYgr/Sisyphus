@@ -6,5 +6,6 @@
     "firestoreField": "recent_posts",
     "thmmyUsername": "USERNAME",
     "thmmyPassword": "PASSWORD",
-    "dataFetchCooldown": 5000
+    "dataFetchCooldown": 5000,
+    "savePostsToFile": true
 }

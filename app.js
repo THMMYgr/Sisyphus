@@ -1,14 +1,16 @@
-const {version} = require('./package.json');
+const { version } = require('./package.json');
 const firebase = require('./src/firebase');
 const log = require('./src/logger');
 const stringifyJSONValues = require('./src/utils').stringifyJSONValues;
 const hash = require('./src/utils').hash;
 const isThmmyReachable = require('./src/utils').isThmmyReachable;
+const writePostsToFile = require('./src/utils').writePostsToFile;
 const getRecentPosts = require('thmmy').getRecentPosts;
 const getTopicBoards = require('thmmy').getTopicBoards;
 const login = require('thmmy').login;
 const config = require('./config/config.json');
 const dataFetchCooldown = config.dataFetchCooldown;  //Cooldown before next data fetch
+const savePostsToFile = config.savePostsToFile;
 
 const reachableCheckCooldown = 2000;
 let nIterations = 0, cookieJar, postsHash, latestPostId;
@@ -65,6 +67,8 @@ async function fetch() {
         if(currentHash!==postsHash) {
             log.verbose('App: Got a new hash...');
             firebase.saveToFirestore(posts);
+            if(savePostsToFile)
+                writePostsToFile(posts);
             let newPosts = posts.filter(post => post.postId>latestPostId);
             if(newPosts.length>0) {
                 log.verbose('App: Found ' + newPosts.length + ' new post(s)!');
