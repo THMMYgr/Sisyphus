@@ -1,6 +1,9 @@
 {
     "firebaseServiceAccountKey": "serviceAccountKey.json",
     "firebaseDatabaseURL": "https://DATABASE_NAME.firebaseio.com/",
+    "firestoreCollection": "recent",
+    "firestoreDocument": "posts",
+    "firestoreField": "recent_posts",
     "thmmyUsername": "USERNAME",
     "thmmyPassword": "PASSWORD",
     "dataFetchCooldown": 5000

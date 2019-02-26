@@ -64,6 +64,7 @@ async function fetch() {
         let currentHash = hash(JSON.stringify(posts));
         if(currentHash!==postsHash) {
             log.verbose('App: Got a new hash...');
+            firebase.saveToFirestore(posts);
             let newPosts = posts.filter(post => post.postId>latestPostId);
             if(newPosts.length>0) {
                 log.verbose('App: Found ' + newPosts.length + ' new post(s)!');
