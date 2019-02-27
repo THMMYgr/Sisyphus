@@ -5,16 +5,23 @@ const config = require('../config/config.json');
 const serviceAccount = require('../config/' + config.firebaseServiceAccountKey);
 
 const databaseURL = config.firebaseDatabaseURL;
+const firestoreCollection = config.firestoreCollection;
+const firestoreDocument = config.firestoreDocument;
+const firestoreField = config.firestoreField;
 
 const reattemptCooldown  = 2000;
 const maxAttempts = 100;
 
+
+let docRef; // Firestore document reference
 async function init() {
-    admin.initializeApp({
+   admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         databaseURL: databaseURL
     });
     log.verbose('Firebase: Initialization successful!');
+
+    docRef = admin.firestore().collection(firestoreCollection).doc(firestoreDocument);
 }
 
 function send(topic, post, attempt=1) {
@@ -40,11 +47,25 @@ function send(topic, post, attempt=1) {
         });
 }
 
+function saveToFirestore (posts) {
+    // Because Firestore doesn't support JavaScript objects with custom prototypes
+    // (i.e. objects that were created via the 'new' operator).
+    posts = posts.map(function(post) {
+        return JSON.parse(JSON.stringify(post));
+    });
+
+    docRef.set({[firestoreField]: posts})
+        .then(() => {
+            log.verbose('Firebase: Firestore document written successfully!');
+        })
+        .catch((error)=> {
+            log.error('Firebase: Firestore error while writing document.');
+            logFirebaseError(error);
+        });
+}
+
 function logFirebaseError(error) {
     (error.errorInfo && error.errorInfo.code) ? log.error('Firebase: ' + error.errorInfo.code) : log.error('Firebase: ' + error);
 }
 
-module.exports = {
-    init,
-    send
-};
+module.exports = { init, send, saveToFirestore };

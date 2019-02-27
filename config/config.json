@@ -1,7 +1,13 @@
 {
     "firebaseServiceAccountKey": "serviceAccountKey.json",
     "firebaseDatabaseURL": "https://DATABASE_NAME.firebaseio.com/",
+    "firestoreCollection": "recent_posts",
+    "firestoreDocument": "recent",
+    "firestoreField": "posts",
     "thmmyUsername": "USERNAME",
     "thmmyPassword": "PASSWORD",
-    "dataFetchCooldown": 5000
+    "dataFetchCooldown": 3000,
+    "recentPostsLimit": 60,
+    "extraBoards": [241, 397, 438, 370, 221, 532 , 238],
+    "savePostsToFile": true
 }

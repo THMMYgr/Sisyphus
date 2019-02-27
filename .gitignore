@@ -3,6 +3,7 @@
 package-lock.json
 
 # Generated files
+/out
 /log
 *.log
 

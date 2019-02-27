@@ -1,9 +1,28 @@
 # Sisyphus
 [![Dependencies](https://img.shields.io/david/ThmmyNoLife/Sisyphus.svg)](https://david-dm.org/ThmmyNoLife/Sisyphus)
 
-Backend service that fetches data from [thmmy.gr](https://www.thmmy.gr/) and pushes them to  [mTHMMY](https://github.com/ThmmyNoLife/mTHMMY) through Firebase.
+Backend service that fetches data from [thmmy.gr](https://www.thmmy.gr/) and provides them to  [mTHMMY](https://github.com/ThmmyNoLife/mTHMMY) through Firebase.
 
 ## Usage
+
+Before starting, make sure to set up Firebase by:
+* Getting a valid *serviceAccountKey.json* (see also the docs [here](https://firebase.google.com/docs/admin/setup))
+
+* Setting the following rules for Firestore:
+
+```
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read;
+      allow write: if false;
+    }
+  }
+}
+```
+
+This will also expose a REST API endpoint at https://firestore.googleapis.com/v1/projects/FIREBASE_PROJECT_ID/databases/(default)/documents/recent_posts/recent/
+that will publicly provide the retrieved recent posts.
 
 ### Development
 
@@ -19,7 +38,7 @@ or [npm](https://www.npmjs.com/):
 npm install
 ```
 
-Then set up the required configuration in the *config* directory by adding a valid *serviceAccountKey.json* there and by editing the *config.json* file (refer to [firebase docs](https://firebase.google.com/docs/admin/setup) for more details).
+Then set up the required configuration in the *config* directory by adding the *serviceAccountKey.json* there and by editing the *config.json* file.
 
 Finally, start the app either by using yarn:
 
@@ -85,7 +104,6 @@ Edit the *config/config.json* file (e.g. with `nano config/config.json`), add a 
 ```bash
 cp -rf config Sisyphus-prod
 ```
-**Note**: Refer to [firebase docs](https://firebase.google.com/docs/admin/setup) for more details about the *serviceAccountKey.json* file.
 
 Install dependencies and run Sisyphus using pm2:
 ```bash
