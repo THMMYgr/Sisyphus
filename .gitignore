@@ -3,9 +3,9 @@
 package-lock.json
 
 # Generated files
+/out
 /log
 *.log
-recent_posts.json
 
 # Configuration
 /config

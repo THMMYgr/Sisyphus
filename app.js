@@ -1,16 +1,27 @@
 const { version } = require('./package.json');
+const { performance } = require('perf_hooks');
 const firebase = require('./src/firebase');
 const log = require('./src/logger');
-const stringifyJSONValues = require('./src/utils').stringifyJSONValues;
-const hash = require('./src/utils').hash;
-const isThmmyReachable = require('./src/utils').isThmmyReachable;
-const writePostsToFile = require('./src/utils').writePostsToFile;
-const getRecentPosts = require('thmmy').getRecentPosts;
-const getTopicBoards = require('thmmy').getTopicBoards;
-const login = require('thmmy').login;
+
+// Utils
+const utils = require('./src/utils');
+const hash = utils.hash;
+const stringifyJSONValues = utils.stringifyJSONValues;
+const isThmmyReachable = utils.isThmmyReachable;
+const writePostsToFile = utils.writePostsToFile;
+const writeLatestIterationToFile = utils.writeLatestIterationToFile;
+
+// thmmy
+const thmmy = require('thmmy');
+const getUnreadPosts = thmmy.getUnreadPosts;
+const getTopicBoards = thmmy.getTopicBoards;
+const login = thmmy.login;
+
+// Config
 const config = require('./config/config.json');
-const dataFetchCooldown = config.dataFetchCooldown;  //Cooldown before next data fetch
+const dataFetchCooldown = config.dataFetchCooldown;  // Cooldown before next data fetch
 const savePostsToFile = config.savePostsToFile;
+const recentPostsLimit = config.recentPostsLimit;
 
 const reachableCheckCooldown = 2000;
 let nIterations = 0, cookieJar, postsHash, latestPostId;
@@ -22,7 +33,8 @@ async function main() {
         log.info('App: Sisyphus v' + version + ' started!');
         await firebase.init();
         cookieJar = await login(config.thmmyUsername, config.thmmyPassword);
-        let posts = await getRecentPosts({cookieJar: cookieJar});
+        let posts = await getUnreadPosts(cookieJar, { boardInfo: true, unreadLimit: recentPostsLimit });
+        savePosts(posts);    // Save initial posts
         postsHash = hash(JSON.stringify(posts));
         latestPostId = posts[0].postId;
         log.verbose('App: Initialization successful!');
@@ -58,17 +70,22 @@ async function main() {
     }
 }
 
+function savePosts(posts){
+    firebase.saveToFirestore(posts);
+    if(savePostsToFile)
+        writePostsToFile(posts);
+}
+
 async function fetch() {
     nIterations++;
     log.verbose('App: Current iteration: ' + nIterations);
-    let posts = await getRecentPosts({cookieJar: cookieJar});
+    const tStart = performance.now();
+    let posts = await getUnreadPosts(cookieJar, { boardInfo: true, unreadLimit: recentPostsLimit });
     if(posts && posts.length>0) {
         let currentHash = hash(JSON.stringify(posts));
         if(currentHash!==postsHash) {
             log.verbose('App: Got a new hash...');
-            firebase.saveToFirestore(posts);
-            if(savePostsToFile)
-                writePostsToFile(posts);
+            savePosts(posts);
             let newPosts = posts.filter(post => post.postId>latestPostId);
             if(newPosts.length>0) {
                 log.verbose('App: Found ' + newPosts.length + ' new post(s)!');
@@ -108,4 +125,6 @@ async function fetch() {
         else
             log.verbose('App: No new posts.');
     }
+    writeLatestIterationToFile();
+    log.verbose("App: Iteration finished in " + ((performance.now() - tStart)/1000).toFixed(3) + " seconds.")
 }

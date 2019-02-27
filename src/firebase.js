@@ -13,7 +13,7 @@ const reattemptCooldown  = 2000;
 const maxAttempts = 100;
 
 
-let docRef; //Firestore document reference
+let docRef; // Firestore document reference
 async function init() {
    admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
