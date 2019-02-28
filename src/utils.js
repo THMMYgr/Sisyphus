@@ -29,10 +29,6 @@ function writePostsToFile(posts){
     writeToFile('recent_posts.json', './out', data);
 }
 
-function writeLatestIterationToFile(){
-    writeToFile('latest_iteration.json', './out', moment().unix());
-}
-
 function writeToFile(file, dir, data){
     const filePath = path.join(dir, file);
     fs.stat(dir, function(error) {
@@ -55,4 +51,4 @@ function writeToFile(file, dir, data){
     });
 }
 
-module.exports = { hash, stringifyJSONValues, isThmmyReachable, writePostsToFile, writeLatestIterationToFile };
+module.exports = { hash, stringifyJSONValues, isThmmyReachable, writePostsToFile };

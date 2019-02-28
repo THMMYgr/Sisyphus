@@ -9,7 +9,6 @@ const hash = utils.hash;
 const stringifyJSONValues = utils.stringifyJSONValues;
 const isThmmyReachable = utils.isThmmyReachable;
 const writePostsToFile = utils.writePostsToFile;
-const writeLatestIterationToFile = utils.writeLatestIterationToFile;
 
 // thmmy
 const thmmy = require('thmmy');
@@ -25,6 +24,7 @@ const extraBoards = config.extraBoards;
 const recentPostsLimit = config.recentPostsLimit;
 const savePostsToFile = config.savePostsToFile;
 
+const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
 const reachableCheckCooldown = 2000;
 let nIterations = 0, cookieJar, postsHash, latestPostId;
 
@@ -32,7 +32,7 @@ main();
 
 async function main() {
     try{
-        log.info('App: Sisyphus v' + version + ' started!');
+        log.info('App: Sisyphus v' + version + ' started in ' + mode + ' mode!');
         await firebase.init();
         cookieJar = await login(config.thmmyUsername, config.thmmyPassword);
         let posts = await getUnreadPosts(cookieJar, { boardInfo: true, unreadLimit: recentPostsLimit });
@@ -150,6 +150,6 @@ async function fetch() {
         else
             log.verbose('App: No new posts.');
     }
-    writeLatestIterationToFile();
+
     log.verbose("App: Iteration finished in " + ((performance.now() - tStart)/1000).toFixed(3) + " seconds.")
 }

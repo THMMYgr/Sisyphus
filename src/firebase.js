@@ -26,7 +26,7 @@ async function init() {
 
 function send(topic, post, attempt=1) {
     let messageInfo;
-    if (!post.boardId)
+    if (!topic.includes('b'))
         messageInfo = 'TOPIC message (topicId: ' + post.topicId + ', postId: ' + post.postId +')';
     else
         messageInfo = 'BOARD message (boardId: ' + post.boardId + ', topicId: ' + post.topicId + ', postId: ' + post.postId + ')';

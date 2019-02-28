@@ -65,15 +65,15 @@ sudo -s
 
 Install [nvm](https://github.com/creationix/nvm) with:
 ```bash
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
 ```
-
-**Note**: If you get `nvm: command not found` after running the above, simply close your current terminal and open a new one.
 
 Install node using nvm:
 ```bash
 nvm install node
 ```
+
+**Note**: If you get `nvm: command not found` after running the command above, simply close your current terminal and open a new one.
 
 Allow npm update checks with:
 ```bash
@@ -109,8 +109,10 @@ Install dependencies and run Sisyphus using pm2:
 ```bash
 cd Sisyphus-prod
 yarn
-NODE_ENV=production pm2 start app.js --name Sisyphus-prod
+NODE_ENV=production pm2 start app.js --name Sisyphus-prod   # Optional: --max-memory-restart ***M 
 ```
+
+**Note**: Sisyphus is rather silent in production mode. For verbose log messages, also set `LOG_LEVEL=verbose`.
 
 Configure pm2 to restart itself and the process:
 ```bash
@@ -119,8 +121,6 @@ pm2 save  # Saves current process list
 ```
 
 To monitor Sisyphus you can use `pm2 list` and `pm2 monit` as root.
-
-**Note**: Sisyphus is rather silent in production. For verbose log messages, run in development mode (i.e. without `NODE_ENV=production`).
 
 #### Updating
 
@@ -135,6 +135,7 @@ pm2 update  # Updates the in-memory PM2 process
 To update node (and npm):
 ```bash
 nvm install node --reinstall-packages-from=node # Installs the latest node version
+pm2 startup ubuntu  # Because the command above will change the pm2 path (https://pm2.io/doc/en/runtime/guide/startup-hook/)
 ```
 
 To update yarn:
@@ -142,4 +143,4 @@ To update yarn:
 npm install -g yarn
 ```
 
-To update nvm, check [here](https://github.com/creationix/nvm) for the latest install script.
+To update nvm, check [here](https://github.com/creationix/nvm) for the latest install script. 

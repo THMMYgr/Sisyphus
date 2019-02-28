@@ -19,8 +19,10 @@ const appendTimestamp = format((info, opts) => {
     return info;
 });
 
+const logLevel = (process.env.LOG_LEVEL === 'verbose') ? 'verbose' : 'info';
+
 let logger = createLogger({
-    level: 'info',
+    level: logLevel,
     format: combine(
         appendTimestamp({tz: 'Europe/Athens'}),
         logFormat
@@ -59,7 +61,7 @@ if (process.env.NODE_ENV !== 'production') {
     }));
 } else {
     logger.add(new transports.Console({
-        level: 'info',
+        level: logLevel,
         format: combine(
             appendTimestamp({tz: 'Europe/Athens'}),
             logFormat
