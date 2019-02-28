@@ -1,6 +1,6 @@
 {
   "name": "sisyphus",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Eternally condemned to provide data from thmmy.gr",
   "private": true,
   "repository": {
@@ -14,7 +14,7 @@
   },
   "main": "app.js",
   "scripts": {
-    "start": "node %NODE_DEBUG_OPTION% app.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "firebase-admin": "^7.0.0",
