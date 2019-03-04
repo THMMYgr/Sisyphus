@@ -1,6 +1,6 @@
 {
   "name": "sisyphus",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Eternally condemned to provide data from thmmy.gr",
   "private": true,
   "repository": {
@@ -14,14 +14,18 @@
   },
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "debug": "cross-env-shell node $NODE_DEBUG_OPTION app.js"
   },
   "dependencies": {
     "firebase-admin": "^7.0.0",
     "is-reachable": "^3.0.0",
     "moment-timezone": "^0.5.23",
-    "thmmy": "^0.7.0",
+    "thmmy": "^0.9.0",
     "winston": "^3.2.1",
     "winston-daily-rotate-file": "^3.8.0"
+  },
+  "devDependencies": {
+    "cross-env": "^5.2.0"
   }
 }
