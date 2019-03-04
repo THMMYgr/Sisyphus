@@ -1,23 +1,18 @@
 const log = require('./logger');
 const admin = require('firebase-admin');
 
-const config = require('../config/config.json');
-const serviceAccount = require('../config/' + config.firebaseServiceAccountKey);
+const { firebaseServiceAccountKey, firebaseDatabaseURL, firestoreCollection, firestoreDocument, firestoreField } = require('../config/config.json');
 
-const databaseURL = config.firebaseDatabaseURL;
-const firestoreCollection = config.firestoreCollection;
-const firestoreDocument = config.firestoreDocument;
-const firestoreField = config.firestoreField;
+const serviceAccount = require('../config/' + firebaseServiceAccountKey);
 
 const reattemptCooldown  = 2000;
 const maxAttempts = 100;
-
 
 let docRef; // Firestore document reference
 async function init() {
    admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        databaseURL: databaseURL
+        databaseURL: firebaseDatabaseURL
     });
     log.verbose('Firebase: Initialization successful!');
 

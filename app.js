@@ -3,30 +3,14 @@ const { performance } = require('perf_hooks');
 const firebase = require('./src/firebase');
 const log = require('./src/logger');
 
-// Utils
-const utils = require('./src/utils');
-const hash = utils.hash;
-const stringifyJSONValues = utils.stringifyJSONValues;
-const isThmmyReachable = utils.isThmmyReachable;
-const writePostsToFile = utils.writePostsToFile;
-
-// thmmy
-const thmmy = require('thmmy');
-const getUnreadPosts = thmmy.getUnreadPosts;
-const getTopicBoards = thmmy.getTopicBoards;
-const login = thmmy.login;
-const markTopicAsUnread = thmmy.markTopicAsUnread;
-
-// Config
-const config = require('./config/config.json');
-const dataFetchCooldown = config.dataFetchCooldown;  // Cooldown before next data fetch
-const extraBoards = config.extraBoards;
-const recentPostsLimit = config.recentPostsLimit;
-const savePostsToFile = config.savePostsToFile;
+const { hash, stringifyJSONValues, isThmmyReachable } = require('./src/utils');
+const { writePostsToFile, getTopicsToBeMarked, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked } = require('./src/ioUtils');
+const { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } = require('thmmy');
+const { thmmyUsername, thmmyPassword, dataFetchCooldown, extraBoards, recentPostsLimit, savePostsToFile } = require('./config/config.json');
 
 const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
 const reachableCheckCooldown = 2000;
-let nIterations = 0, cookieJar, postsHash, latestPostId;
+let nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
 
 main();
 
@@ -34,7 +18,14 @@ async function main() {
     try{
         log.info('App: Sisyphus v' + version + ' started in ' + mode + ' mode!');
         await firebase.init();
-        cookieJar = await login(config.thmmyUsername, config.thmmyPassword);
+        ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
+        const topicsToBeMarkedAsUnread = getTopicsToBeMarked();
+        for (let i = 0; i < topicsToBeMarkedAsUnread.length; i++){
+            markTopicAsUnread(topicsToBeMarkedAsUnread[i], cookieJar, {sesc: sesc});
+            log.info('App: Marked backed up topics as unread.');
+        }
+
+        log.verbose('App: Fetching initial posts...');
         let posts = await getUnreadPosts(cookieJar, { boardInfo: true, unreadLimit: recentPostsLimit });
         if(extraBoards.length>0){
             const extraPosts = await getUnreadPosts(cookieJar, { boardInfo: true, unreadLimit: recentPostsLimit, boards: extraBoards });
@@ -46,15 +37,13 @@ async function main() {
         log.verbose('App: Initialization successful!');
     }
     catch (error) {
-        throw new Error('App: ' + error);
+        if(!error.code) error.code = "EOTHER";
+        throw new Error('App: ' + error + "(" + error.code + ")");
     }
 
     while(true) {
         try{
-            if(!cookieJar.getCookieString('https://www.thmmy.gr').includes('THMMYgrC00ki3')) {
-                cookieJar = await login(config.thmmyUsername, config.thmmyPassword);    // Refresh cookieJar
-                log.info('App: CookieJar was refreshed.');
-            }
+            await refreshSessionDataIfNeeded();
             await fetch();
             log.verbose('App: Cooling down for ' + dataFetchCooldown/1000 + 's...');
             await new Promise(resolve => setTimeout(resolve, dataFetchCooldown));
@@ -68,6 +57,10 @@ async function main() {
                         await new Promise(resolve => setTimeout(resolve, reachableCheckCooldown));
                     log.info('App: Connection to thmmy.gr is restored!');
                 }
+                if(!await refreshSessionDataIfNeeded() && error.code && error.code === 'EINVALIDSESC'){
+                    sesc = await getSesc(cookieJar);    // Refresh sesc
+                    log.error('App: sesc was refreshed.');
+                }
             }
             catch (error) {
                 log.error('App: ' + error);
@@ -79,7 +72,7 @@ async function main() {
 function mergePosts(posts1, posts2) {
     let posts = posts1.concat(posts2);
     posts.sort(function(a, b) {
-        return b.timestamp - a.timestamp;
+        return b.postId - a.postId;
     });
     return (recentPostsLimit<posts.length) ? posts.slice(0,recentPostsLimit) : posts;
 }
@@ -102,10 +95,12 @@ async function pushToFirebase(newPosts) {
 
         newPosts.reverse();
 
+        backupTopicsToBeMarked(newPosts);
+
         let newBoardPosts = [];
         for (let i = 0; i < newPosts.length; i++) {
             let boards = await getTopicBoards(newPosts[i].topicId, {cookieJar: cookieJar});
-            await markTopicAsUnread(newPosts[i].topicId, cookieJar);    // The line above will mark is as read
+            await markTopicAsUnread(newPosts[i].topicId, cookieJar, {sesc: sesc});    // The line above will mark is as read
             boards.forEach(function (board) {
                 let newBoardPost = JSON.parse(JSON.stringify(newPosts[i]));   // Deep cloning
                 newBoardPost = Object.assign(newBoardPost, board);
@@ -114,6 +109,8 @@ async function pushToFirebase(newPosts) {
                 newBoardPosts.push(newBoardPost);
             });
         }
+
+        clearBackedUpTopicsToBeMarked();    // Everything was marked as unread successfully and no longer needed
 
         newPosts.forEach(function (newPost) {
             firebase.send(newPost.topicId, newPost);
@@ -152,4 +149,21 @@ async function fetch() {
     }
 
     log.verbose("App: Iteration finished in " + ((performance.now() - tStart)/1000).toFixed(3) + " seconds.")
+}
+
+async function refreshSessionDataIfNeeded(){
+    if(!cookieJar.getCookieString('https://www.thmmy.gr').includes('THMMYgrC00ki3')) {
+        ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));    // Refresh cookieJar & sesc
+        log.info('App: CookieJar and sesc were refreshed.');
+        return true;
+    }
+    return false;
+}
+
+// This will be an array to be stored as a backup in case something goes wrong
+function backupTopicsToBeMarked(newPosts){
+    topicIdsToBeMarked = newPosts.map(function (newPost) {
+        return parseInt(newPost.topicId);
+    });
+    writeTopicsToBeMarkedToFile(topicIdsToBeMarked);
 }
