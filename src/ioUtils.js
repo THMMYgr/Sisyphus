@@ -50,7 +50,7 @@ function writeToFileSync(file, dir, data){
 }
 
 function writePostsToFile(posts){
-    const data = JSON.stringify({posts, timestamp: moment().unix()}, null, 4);
+    const data = JSON.stringify({posts, timestamp: moment().unix(), humanTime: moment().tz("Europe/Athens").format()}, null, 4);
     writeToFile(recentPostsFile, outDir, data);
 }
 

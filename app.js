@@ -18,13 +18,9 @@ async function main() {
     try{
         log.info('App: Sisyphus v' + version + ' started in ' + mode + ' mode!');
         await firebase.init();
+        log.verbose('App: Logging in...');
         ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
-        const topicsToBeMarkedAsUnread = getTopicsToBeMarked();
-        for (let i = 0; i < topicsToBeMarkedAsUnread.length; i++){
-            markTopicAsUnread(topicsToBeMarkedAsUnread[i], cookieJar, {sesc: sesc});
-            log.info('App: Marked backed up topics as unread.');
-        }
-
+        await markBackedUpTopicsAsUnread(); // In case of an unexpected restart
         log.verbose('App: Fetching initial posts...');
         let posts = await getUnreadPosts(cookieJar, { boardInfo: true, unreadLimit: recentPostsLimit });
         if(extraBoards.length>0){
@@ -61,6 +57,7 @@ async function main() {
                     sesc = await getSesc(cookieJar);    // Refresh sesc
                     log.error('App: sesc was refreshed.');
                 }
+                await markBackedUpTopicsAsUnread();
             }
             catch (error) {
                 log.error('App: ' + error);
@@ -100,7 +97,7 @@ async function pushToFirebase(newPosts) {
         let newBoardPosts = [];
         for (let i = 0; i < newPosts.length; i++) {
             let boards = await getTopicBoards(newPosts[i].topicId, {cookieJar: cookieJar});
-            await markTopicAsUnread(newPosts[i].topicId, cookieJar, {sesc: sesc});    // The line above will mark is as read
+            await markTopicAsUnread(newPosts[i].topicId, cookieJar, {sesc: sesc});    // The line above will mark the topic as read
             boards.forEach(function (board) {
                 let newBoardPost = JSON.parse(JSON.stringify(newPosts[i]));   // Deep cloning
                 newBoardPost = Object.assign(newBoardPost, board);
@@ -138,7 +135,7 @@ async function fetch() {
             savePosts(posts);
             let newPosts = posts.filter(post => post.postId>latestPostId);
             if(newPosts.length>0)
-                pushToFirebase(newPosts);
+                await pushToFirebase(newPosts);
             else
                 log.verbose('App: ...but no new posts were found.');
 
@@ -166,4 +163,30 @@ function backupTopicsToBeMarked(newPosts){
         return parseInt(newPost.topicId);
     });
     writeTopicsToBeMarkedToFile(topicIdsToBeMarked);
+}
+
+async function markBackedUpTopicsAsUnread(){
+    return new Promise(function(resolve, reject) {
+        const topicsToBeMarkedAsUnread = getTopicsToBeMarked();
+        if(topicsToBeMarkedAsUnread.length > 0) {
+            let markTopicAsUnreadPromises = [];
+
+            topicsToBeMarkedAsUnread.forEach(function(topicId) {
+                markTopicAsUnreadPromises.push(markTopicAsUnread(topicId, cookieJar, {sesc: sesc}));
+            });
+
+            Promise.all(markTopicAsUnreadPromises)
+                .then(() => {
+                    log.info('App: Marked backed up topics as unread.');
+                    clearBackedUpTopicsToBeMarked();
+                    resolve();
+                })
+                .catch(error => {
+                    log.error('App: Failed to mark backed up topics as unread.');
+                    reject(error);
+                });
+        }
+        else
+            resolve();
+    });
 }
