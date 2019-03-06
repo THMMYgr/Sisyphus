@@ -51,7 +51,7 @@ function saveToFirestore (posts) {
 
     docRef.set({[firestoreField]: posts})
         .then(() => {
-            log.verbose('Firebase: Firestore document written successfully!');
+            log.info('Firebase: Firestore document written successfully!');
         })
         .catch((error)=> {
             log.error('Firebase: Firestore error while writing document.');

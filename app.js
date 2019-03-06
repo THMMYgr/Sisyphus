@@ -12,13 +12,17 @@ const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'developme
 const reachableCheckCooldown = 2000;
 let nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
 
-main();
+init().then(() => {
+        main();
+    }).catch((error) => {
+        log.error('App: ' + error);
+    });
 
-async function main() {
+async function init(){
     try{
         log.info('App: Sisyphus v' + version + ' started in ' + mode + ' mode!');
         await firebase.init();
-        log.verbose('App: Logging in...');
+        log.verbose('App: Logging in to thmmy.gr...');
         ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
         await markBackedUpTopicsAsUnread(); // In case of an unexpected restart
         log.verbose('App: Fetching initial posts...');
@@ -33,10 +37,13 @@ async function main() {
         log.verbose('App: Initialization successful!');
     }
     catch (error) {
-        if(!error.code) error.code = "EOTHER";
+        if(!error.code)
+            error.code = "EOTHER";
         throw new Error('App: ' + error + "(" + error.code + ")");
     }
+}
 
+async function main() {
     while(true) {
         try{
             await refreshSessionDataIfNeeded();
@@ -144,8 +151,7 @@ async function fetch() {
         else
             log.verbose('App: No new posts.');
     }
-
-    log.verbose("App: Iteration finished in " + ((performance.now() - tStart)/1000).toFixed(3) + " seconds.")
+    log.verbose("App: Iteration finished in " + ((performance.now() - tStart)/1000).toFixed(3) + " seconds.");
 }
 
 async function refreshSessionDataIfNeeded(){
