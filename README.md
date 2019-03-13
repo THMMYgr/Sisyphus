@@ -109,7 +109,7 @@ Install dependencies and run Sisyphus using pm2:
 ```bash
 cd Sisyphus-prod
 yarn
-NODE_ENV=production pm2 start app.js --name Sisyphus-prod   # Optional: --max-memory-restart ***M 
+NODE_ENV=production pm2 start app.js --name Sisyphus-prod   # Optional: --max-memory-restart ***M
 ```
 
 **Note**: Sisyphus is rather silent in production mode. For verbose log messages, also set `LOG_LEVEL=verbose`.
@@ -128,7 +128,7 @@ To monitor Sisyphus you can use `pm2 list` and `pm2 monit` as root.
 
 You can update pm2 with:
 ```bash
-yarn global add pm2
+yarn global upgrade pm2
 pm2 update  # Updates the in-memory PM2 process
 ```
 
@@ -140,7 +140,7 @@ pm2 startup ubuntu  # Because the command above will change the pm2 path (https:
 
 To update yarn:
 ```bash
-npm install -g yarn
+npm update -g yarn
 ```
 
-To update nvm, check [here](https://github.com/creationix/nvm) for the latest install script. 
+To update nvm, check [here](https://github.com/creationix/nvm) for the latest install script.
