@@ -1,0 +1,23 @@
+{
+  "env": {
+    "node": true
+  },
+  "extends": "airbnb",
+  "rules": {
+    "comma-dangle": ["error", "never"],
+    "no-await-in-loop": "off",
+    "no-console": "off",
+    "no-param-reassign": "off",
+    "no-plusplus": "off",
+    "no-shadow": "off",
+    "no-unused-vars": "warn",
+    "no-unused-expressions": ["error", { "allowTernary": true }],
+    "object-curly-newline": ["error", {
+      "ObjectExpression": "always",
+      "ObjectPattern": { "multiline": true },
+      "ImportDeclaration": "never",
+      "ExportDeclaration": "never"
+    }],
+    "object-curly-spacing": ["error", "always"]
+  }
+}
