@@ -4,14 +4,14 @@ const { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } = re
 const { version } = require('./package.json');
 const firebase = require('./src/firebase');
 const log = require('./src/logger');
+const { iterationsCounter, iterationDurationMetric } = require('./src/pm2');
 const { hash, stringifyJSONValues, isThmmyReachable } = require('./src/utils');
 const { writePostsToFile, getTopicsToBeMarked, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked } = require('./src/ioUtils');
 const { thmmyUsername, thmmyPassword, dataFetchCooldown, extraBoards, recentPostsLimit, savePostsToFile } = require('./config/config.json');
 
 const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
 const reachableCheckCooldown = 2000;
-let nIterations = 0; let cookieJar; let sesc; let postsHash; let latestPostId; let
-  topicIdsToBeMarked = [];
+let nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
 
 init().then(() => {
   main();
@@ -128,6 +128,7 @@ async function pushToFirebase(newPosts) {
 
 async function fetch() {
   nIterations++;
+  iterationsCounter.inc();
   log.verbose(`App: Current iteration: ${nIterations}`);
   const tStart = performance.now();
   let posts = await getUnreadPosts(cookieJar, {
@@ -145,13 +146,14 @@ async function fetch() {
       log.verbose('App: Got a new hash...');
       savePosts(posts);
       const newPosts = posts.filter(post => post.postId > latestPostId);
-      if (newPosts.length > 0) await pushToFirebase(newPosts);
-      else log.verbose('App: ...but no new posts were found.');
-
+      (newPosts.length > 0) ? await pushToFirebase(newPosts) : log.verbose('App: ...but no new posts were found.');
       postsHash = currentHash; // This belongs here to make Sisyphus retry for this hash in case of error
     } else log.verbose('App: No new posts.');
   }
-  log.verbose(`App: Iteration finished in ${((performance.now() - tStart) / 1000).toFixed(3)} seconds.`);
+
+  const iterationTime = ((performance.now() - tStart) / 1000).toFixed(3);
+  log.verbose(`App: Iteration finished in ${iterationTime} seconds.`);
+  iterationDurationMetric.set(parseInt(iterationTime));
 }
 
 async function refreshSessionDataIfNeeded() {
