@@ -5,13 +5,17 @@
   "extends": "airbnb",
   "rules": {
     "comma-dangle": ["error", "never"],
+    "curly": ["error", "multi-or-nest"],
     "no-await-in-loop": "off",
     "no-console": "off",
     "no-param-reassign": "off",
     "no-plusplus": "off",
     "no-shadow": "off",
+    "no-trailing-spaces": ["error", { "skipBlankLines": true }],
+    "no-use-before-define": ["error", { "functions": false}],
     "no-unused-vars": "warn",
     "no-unused-expressions": ["error", { "allowTernary": true }],
+    "nonblock-statement-body-position": ["error", "any"],
     "object-curly-newline": ["error", {
       "ObjectExpression": "always",
       "ObjectPattern": { "multiline": true },

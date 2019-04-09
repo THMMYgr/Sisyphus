@@ -140,7 +140,8 @@ async function fetch() {
     });
     posts = mergePosts(posts, extraPosts);
   }
-  if (posts && posts.length > 0) {
+
+  if (Array.isArray(posts)) {
     const currentHash = hash(JSON.stringify(posts));
     if (currentHash !== postsHash) {
       log.verbose('App: Got a new hash...');
@@ -149,7 +150,7 @@ async function fetch() {
       (newPosts.length > 0) ? await pushToFirebase(newPosts) : log.verbose('App: ...but no new posts were found.');
       postsHash = currentHash; // This belongs here to make Sisyphus retry for this hash in case of error
     } else log.verbose('App: No new posts.');
-  }
+  } else log.warn('App: Received malformed posts.');
 
   const iterationTime = ((performance.now() - tStart) / 1000).toFixed(3);
   log.verbose(`App: Iteration finished in ${iterationTime} seconds.`);
