@@ -92,7 +92,7 @@ pm2 install pm2-logrotate
 
 Clone Sisyphus using git:
 ```bash
-git clone --depth=1 https://github.com/ThmmyNoLife/Sisyphus.git Sisyphus-prod
+git clone -b master --depth=1 https://github.com/ThmmyNoLife/Sisyphus.git Sisyphus-prod
 ```
 
 Create a directory name *config* where a backup of the required configuration will be kept. After that, copy the template *config.json* file from the *Sisyphus-prod/config* directory to *config*:

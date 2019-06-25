@@ -7,7 +7,7 @@ const logDir = 'log';
 
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
-const { combine, timestamp, printf } = format;
+const { combine, printf } = format;
 
 const logFormat = printf(info => `[${info.timestamp}] ${info.level}: ${info.message}`);
 
