@@ -15,7 +15,7 @@ async function init() {
     credential: admin.credential.cert(serviceAccount),
     databaseURL: firebaseDatabaseURL
   });
-  log.verbose('Firebase: Initialization successful!');
+  log.info(`Firebase: Initialization successful for project ${serviceAccount.project_id}!`);
 
   docRef = admin.firestore().collection(firestoreCollection).doc(firestoreDocument);
 }
