@@ -4,7 +4,6 @@ const { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } = re
 const { version } = require('./package.json');
 const firebase = require('./src/firebase');
 const log = require('./src/logger');
-const { iterationsCounter, iterationDurationMetric } = require('./src/pm2');
 const { hash, stringifyJSONValues, isThmmyReachable } = require('./src/utils');
 const { writePostsToFile, getTopicsToBeMarked, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked } = require('./src/ioUtils');
 const { thmmyUsername, thmmyPassword, dataFetchCooldown, extraBoards, recentPostsLimit, savePostsToFile } = require('./config/config.json');
@@ -128,7 +127,6 @@ async function pushToFirebase(newPosts) {
 
 async function fetch() {
   nIterations++;
-  iterationsCounter.inc();
   log.verbose(`App: Current iteration: ${nIterations}`);
   const tStart = performance.now();
   let posts = await getUnreadPosts(cookieJar, {
@@ -154,7 +152,6 @@ async function fetch() {
 
   const iterationTime = ((performance.now() - tStart) / 1000).toFixed(3);
   log.verbose(`App: Iteration finished in ${iterationTime} seconds.`);
-  iterationDurationMetric.set(parseInt(iterationTime));
 }
 
 async function refreshSessionDataIfNeeded() {
