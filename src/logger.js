@@ -1,7 +1,7 @@
-const { createLogger, format, transports } = require('winston');
-require('winston-daily-rotate-file');
-const moment = require('moment-timezone');
-const fs = require('fs');
+import { createLogger, format, transports } from 'winston';
+import 'winston-daily-rotate-file';
+import moment from 'moment-timezone';
+import fs from 'fs';
 
 const logDir = 'log';
 
@@ -78,4 +78,4 @@ process.on('unhandledRejection', reason => {
   throw reason; // Will be handled by winston
 });
 
-module.exports = logger;
+export default logger;

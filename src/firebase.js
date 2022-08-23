@@ -1,14 +1,14 @@
-const admin = require('firebase-admin');
-const log = require('./logger');
+import admin from 'firebase-admin';
+import log from './logger.js';
+import config from '../config/config.json' assert {type: 'json'};
+import serviceAccount from '../config/serviceAccountKey.json' assert {type: 'json'};
 
 const {
   firebaseDatabaseURL,
   firestoreCollection,
   firestoreDocument,
   firestoreField
-} = require('../config/config.json');
-
-const serviceAccount = require('../config/serviceAccountKey.json');
+} = config;
 
 const reattemptCooldown = 2000;
 const maxAttempts = 100;
@@ -89,6 +89,6 @@ function logFirebaseError(error) {
     : log.error(`Firebase: ${error}`);
 }
 
-module.exports = {
+export {
   init, send, saveToFirestore
 };

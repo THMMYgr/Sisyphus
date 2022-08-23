@@ -1,19 +1,22 @@
-const { performance } = require('perf_hooks');
-const { setTimeout } = require('timers/promises');
-const { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } = require('thmmy');
+import { performance } from 'perf_hooks';
+import { setTimeout } from 'timers/promises';
+import { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } from 'thmmy';
 
-const { version } = require('./package.json');
-const firebase = require('./src/firebase');
-const log = require('./src/logger');
-const { hash, stringifyJSONValues, isThmmyReachable } = require('./src/utils');
+import * as firebase from './src/firebase.js';
+import log from './src/logger.js';
+import { hash, stringifyJSONValues, isThmmyReachable } from './src/utils.js';
 
-const {
+import {
   writePostsToFile,
   getTopicsToBeMarked,
   writeTopicsToBeMarkedToFile,
   clearBackedUpTopicsToBeMarked
-} = require('./src/ioUtils');
+} from './src/ioUtils.js';
 
+import packageJSON from './package.json' assert {type: 'json'};
+import config from './config/config.json' assert {type: 'json'};
+
+const { version } = packageJSON;
 const {
   thmmyUsername,
   thmmyPassword,
@@ -21,7 +24,7 @@ const {
   extraBoards,
   recentPostsLimit,
   savePostsToFile
-} = require('./config/config.json');
+} = config;
 
 const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
 const reachableCheckCooldown = 2000;

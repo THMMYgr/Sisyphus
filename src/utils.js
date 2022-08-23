@@ -1,5 +1,5 @@
-const crypto = require('crypto');
-const isReachable = require('is-reachable');
+import crypto from'crypto';
+import isReachable from 'is-reachable';
 
 function hash(string) {
   return crypto.createHash('md5').update(string).digest('hex').substring(0, 12);
@@ -17,6 +17,6 @@ async function isThmmyReachable() {
   return isReachable('thmmy.gr').then(reachable => reachable);
 }
 
-module.exports = {
+export {
   hash, stringifyJSONValues, isThmmyReachable
 };

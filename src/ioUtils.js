@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
-const moment = require('moment-timezone');
-const log = require('./logger');
+import fs from 'fs';
+import path from'path';
+import moment from 'moment-timezone';
+import log from './logger.js';
 
 const outDir = './out';
 const recentPostsFile = 'recent_posts.json';
@@ -70,6 +70,6 @@ function getTopicsToBeMarked() {
   return [];
 }
 
-module.exports = {
+export {
   writePostsToFile, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked, getTopicsToBeMarked
 };
