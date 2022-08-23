@@ -1,5 +1,4 @@
 {
-    "firebaseServiceAccountKey": "serviceAccountKey.json",
     "firebaseDatabaseURL": "https://DATABASE_NAME.firebaseio.com/",
     "firestoreCollection": "recent_posts",
     "firestoreDocument": "recent",

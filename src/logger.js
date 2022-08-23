@@ -64,6 +64,7 @@ if (process.env.NODE_ENV !== 'production') {
   logger.add(new transports.Console({
     level: logLevel,
     format: combine(
+      format.colorize(),
       appendTimestamp({
         tz: 'Europe/Athens'
       }),
@@ -73,7 +74,7 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-process.on('unhandledRejection', (reason) => {
+process.on('unhandledRejection', reason => {
   throw reason; // Will be handled by winston
 });
 

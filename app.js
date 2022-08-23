@@ -1,12 +1,27 @@
 const { performance } = require('perf_hooks');
+const { setTimeout } = require('timers/promises');
 const { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } = require('thmmy');
 
 const { version } = require('./package.json');
 const firebase = require('./src/firebase');
 const log = require('./src/logger');
 const { hash, stringifyJSONValues, isThmmyReachable } = require('./src/utils');
-const { writePostsToFile, getTopicsToBeMarked, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked } = require('./src/ioUtils');
-const { thmmyUsername, thmmyPassword, dataFetchCooldown, extraBoards, recentPostsLimit, savePostsToFile } = require('./config/config.json');
+
+const {
+  writePostsToFile,
+  getTopicsToBeMarked,
+  writeTopicsToBeMarkedToFile,
+  clearBackedUpTopicsToBeMarked
+} = require('./src/ioUtils');
+
+const {
+  thmmyUsername,
+  thmmyPassword,
+  dataFetchCooldown,
+  extraBoards,
+  recentPostsLimit,
+  savePostsToFile
+} = require('./config/config.json');
 
 const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
 const reachableCheckCooldown = 2000;
@@ -14,7 +29,7 @@ let nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarke
 
 init().then(() => {
   main();
-}).catch((error) => {
+}).catch(error => {
   log.error(`App: ${error}`);
 });
 
@@ -51,13 +66,14 @@ async function main() {
       await refreshSessionDataIfNeeded();
       await fetch();
       log.verbose(`App: Cooling down for ${dataFetchCooldown / 1000}s...`);
-      await new Promise(resolve => setTimeout(resolve, dataFetchCooldown));
+      await setTimeout(dataFetchCooldown);
     } catch (error) {
       log.error(`App: ${error}`);
       try {
         if (!await isThmmyReachable()) {
           log.error('App: Lost connection to thmmy.gr. Waiting to be restored...');
-          while (!await isThmmyReachable()) await new Promise(resolve => setTimeout(resolve, reachableCheckCooldown));
+          while (!await isThmmyReachable())
+            await setTimeout(reachableCheckCooldown);
           log.info('App: Connection to thmmy.gr is restored!');
         }
         if (!await refreshSessionDataIfNeeded() && error.code && error.code === 'EINVALIDSESC') {
@@ -87,7 +103,7 @@ function savePosts(posts) {
 async function pushToFirebase(newPosts) {
   if (newPosts.length > 0) {
     log.verbose(`App: Found ${newPosts.length} new post(s)!`);
-    newPosts.forEach((post) => {
+    newPosts.forEach(post => {
       if (post.postId > latestPostId) latestPostId = post.postId;
       stringifyJSONValues(post);
     });
@@ -104,7 +120,7 @@ async function pushToFirebase(newPosts) {
       await markTopicAsUnread(newPosts[i].topicId, cookieJar, {
         sesc
       }); // The line above will mark the topic as read
-      boards.forEach((board) => {
+      boards.forEach(board => {
         let newBoardPost = JSON.parse(JSON.stringify(newPosts[i])); // Deep cloning
         newBoardPost = Object.assign(newBoardPost, board);
         newBoardPost.boardId = newBoardPost.boardId.toString();
@@ -115,11 +131,11 @@ async function pushToFirebase(newPosts) {
 
     clearBackedUpTopicsToBeMarked(); // Everything was marked as unread successfully and no longer needed
 
-    newPosts.forEach((newPost) => {
+    newPosts.forEach(newPost => {
       firebase.send(newPost.topicId, newPost);
     });
 
-    newBoardPosts.forEach((newBoardPost) => {
+    newBoardPosts.forEach(newBoardPost => {
       firebase.send(`b${newBoardPost.boardId}`, newBoardPost);
     });
   }
@@ -165,7 +181,7 @@ async function refreshSessionDataIfNeeded() {
 
 // This will be an array to be stored as a backup in case something goes wrong
 function backupTopicsToBeMarked(newPosts) {
-  topicIdsToBeMarked = newPosts.map(newPost => parseInt(newPost.topicId));
+  topicIdsToBeMarked = newPosts.map(newPost => parseInt(newPost.topicId, 10));
   writeTopicsToBeMarkedToFile(topicIdsToBeMarked);
 }
 
@@ -175,7 +191,7 @@ async function markBackedUpTopicsAsUnread() {
     if (topicsToBeMarkedAsUnread.length > 0) {
       const markTopicAsUnreadPromises = [];
 
-      topicsToBeMarkedAsUnread.forEach((topicId) => {
+      topicsToBeMarkedAsUnread.forEach(topicId => {
         markTopicAsUnreadPromises.push(markTopicAsUnread(topicId, cookieJar, {
           sesc
         }));
@@ -187,7 +203,7 @@ async function markBackedUpTopicsAsUnread() {
           clearBackedUpTopicsToBeMarked();
           resolve();
         })
-        .catch((error) => {
+        .catch(error => {
           log.error('App: Failed to mark backed up topics as unread.');
           reject(error);
         });

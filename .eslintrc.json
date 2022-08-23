@@ -4,10 +4,13 @@
   },
   "extends": "airbnb",
   "rules": {
+    "arrow-parens": ["error", "as-needed"],
     "comma-dangle": ["error", "never"],
     "curly": ["error", "multi-or-nest"],
+    "max-len": ["error", { "code": 120, "ignoreTrailingComments": true }],
     "no-await-in-loop": "off",
     "no-console": "off",
+    "no-constant-condition": ["error", { "checkLoops": false }],
     "no-param-reassign": "off",
     "no-plusplus": "off",
     "no-shadow": "off",

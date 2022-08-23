@@ -7,7 +7,7 @@ function hash(string) {
 
 // Helper function (Firebase FCM does not accept integers as JSON values)
 function stringifyJSONValues(json) {
-  Object.keys(json).forEach((k) => {
+  Object.keys(json).forEach(k => {
     json[k] = String(json[k]);
   });
   return json;

@@ -1,9 +1,14 @@
 const admin = require('firebase-admin');
 const log = require('./logger');
 
-const { firebaseServiceAccountKey, firebaseDatabaseURL, firestoreCollection, firestoreDocument, firestoreField } = require('../config/config.json');
+const {
+  firebaseDatabaseURL,
+  firestoreCollection,
+  firestoreDocument,
+  firestoreField
+} = require('../config/config.json');
 
-const serviceAccount = require(`../config/${firebaseServiceAccountKey}`);
+const serviceAccount = require('../config/serviceAccountKey.json');
 
 const reattemptCooldown = 2000;
 const maxAttempts = 100;
@@ -32,10 +37,10 @@ function send(topic, post, attempt = 1) {
   }, {
     priority: 'high'
   })
-    .then((response) => {
+    .then(response => {
       log.info(`Firebase: Successfully sent ${messageInfo} with messageId: ${response.messageId}`);
     })
-    .catch((error) => {
+    .catch(error => {
       log.error(`Firebase: Error sending ${messageInfo} (attempt ${attempt})`);
       logFirebaseError(error);
       if (attempt < maxAttempts) {
@@ -66,7 +71,7 @@ function saveToFirestore(posts, attempt = 1, timestamp = +new Date()) {
     .then(() => {
       log.info('Firebase: Firestore document written successfully!');
     })
-    .catch((error) => {
+    .catch(error => {
       log.error(`Firebase: Firestore error while writing document (attempt ${attempt}).`);
       logFirebaseError(error);
       if (attempt < maxAttempts) {
@@ -79,7 +84,9 @@ function saveToFirestore(posts, attempt = 1, timestamp = +new Date()) {
 }
 
 function logFirebaseError(error) {
-  (error.errorInfo && error.errorInfo.code) ? log.error(`Firebase: ${error.errorInfo.code}`) : log.error(`Firebase: ${error}`);
+  (error.errorInfo && error.errorInfo.code)
+    ? log.error(`Firebase: ${error.errorInfo.code}`)
+    : log.error(`Firebase: ${error}`);
 }
 
 module.exports = {

@@ -9,20 +9,20 @@ const topicsToBeMarkedFile = 'topics_to_be_marked.json';
 
 function writeToFile(file, dir, data) {
   const filePath = path.join(dir, file);
-  fs.stat(dir, (error) => {
+  fs.stat(dir, error => {
     if (error) {
       if (error.code === 'ENOENT') {
-        fs.mkdir(dir, (error) => {
+        fs.mkdir(dir, error => {
           if (error) log.error(`IOUtils: ${error}`);
           else {
-            fs.writeFile(filePath, data, (error) => {
+            fs.writeFile(filePath, data, error => {
               if (error) log.error(`IOUtils: ${error}`);
             });
           }
         });
       } else log.error(`IOUtils: ${error}`);
     } else {
-      fs.writeFile(filePath, data, (error) => {
+      fs.writeFile(filePath, data, error => {
         if (error) log.error(`IOUtils: ${error}`);
       });
     }
