@@ -1,28 +1,27 @@
 import admin from 'firebase-admin';
-import log from './logger.js';
+import logger from './logger.js';
 import config from '../config/config.json' assert {type: 'json'};
 import serviceAccount from '../config/serviceAccountKey.json' assert {type: 'json'};
 
 const {
-  firebaseDatabaseURL,
-  firestoreCollection,
-  firestoreDocument,
-  firestoreField
+  firestoreRecentPostsCollection,
+  firestoreRecentPostsDocument,
+  firestorePostsField
 } = config;
 
+const log = logger.child({ tag: 'Firebase' });
 const reattemptCooldown = 2000;
 const maxAttempts = 100;
 
-let docRef; // Firestore document reference
+let recentPostsDocRef; // Firestore recent posts document reference
 
 async function init() {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: firebaseDatabaseURL
+    credential: admin.credential.cert(serviceAccount)
   });
-  log.info(`Firebase: Initialization successful for project ${serviceAccount.project_id}!`);
+  log.info(`Initialization successful for project ${serviceAccount.project_id}!`);
 
-  docRef = admin.firestore().collection(firestoreCollection).doc(firestoreDocument);
+  recentPostsDocRef = admin.firestore().collection(firestoreRecentPostsCollection).doc(firestoreRecentPostsDocument);
 }
 
 function send(topic, post, attempt = 1) {
@@ -38,26 +37,38 @@ function send(topic, post, attempt = 1) {
     priority: 'high'
   })
     .then(response => {
-      log.info(`Firebase: Successfully sent ${messageInfo} with messageId: ${response.messageId}`);
+      log.info(`Successfully sent ${messageInfo} with messageId: ${response.messageId}`);
     })
     .catch(error => {
-      log.error(`Firebase: Error sending ${messageInfo} (attempt ${attempt})`);
+      log.error(`Error sending ${messageInfo} (attempt ${attempt})`);
       logFirebaseError(error);
       if (attempt < maxAttempts) {
         attempt++;
-        log.info(`Firebase: Retrying to send ${messageInfo} in ${reattemptCooldown / 1000}s...`);
+        log.info(`Retrying to send ${messageInfo} in ${reattemptCooldown / 1000}s...`);
         setTimeout(send, reattemptCooldown, topic, post, attempt);
-      } else log.error(`Firebase: Maximum number of attempts reached. ${messageInfo} will not be delivered.`);
+      } else log.error(`Maximum number of attempts reached. ${messageInfo} will not be delivered.`);
     });
+}
+
+async function saveToFirestore(docRef, field, data) {
+  try {
+    await docRef.set({[field]: data});
+    log.info(`Written successfully to Firestore document (id: ${docRef.id}, field: ${field})!`);
+  }
+  catch(error) {
+    log.error(`Error while writing to Firestore document (id: ${docRef.id}, field: ${field}).`);
+    logFirebaseError(error);
+    throw(error);
+  }
 }
 
 let latestPostsToBeSavedTimestamp = 0;
 
-function saveToFirestore(posts, attempt = 1, timestamp = +new Date()) {
+function savePostsToFirestore(posts, attempt = 1, timestamp = +new Date()) {
   if (attempt === 1)
     latestPostsToBeSavedTimestamp = timestamp;
   else if (timestamp < latestPostsToBeSavedTimestamp) {
-    log.info('Firebase: Document will not be written to Firestore in favor of a newer one.');
+    log.info('Document will not be written to Firestore in favor of a newer one.');
     return;
   }
 
@@ -65,30 +76,24 @@ function saveToFirestore(posts, attempt = 1, timestamp = +new Date()) {
   // (i.e. objects that were created via the 'new' operator).
   posts = posts.map(post => JSON.parse(JSON.stringify(post)));
 
-  docRef.set({
-    [firestoreField]: posts
-  })
-    .then(() => {
-      log.info('Firebase: Firestore document written successfully!');
-    })
-    .catch(error => {
-      log.error(`Firebase: Firestore error while writing document (attempt ${attempt}).`);
-      logFirebaseError(error);
+  saveToFirestore(recentPostsDocRef, firestorePostsField, posts)
+    .catch(() => {
+      log.error(`Error while writing recent posts document to Firestore (attempt ${attempt}).`);
       if (attempt < maxAttempts) {
         attempt++;
-        log.info(`Firebase: Retrying to write document to Firestore in ${reattemptCooldown / 1000}s...`);
-        setTimeout(saveToFirestore, reattemptCooldown, posts, attempt, timestamp);
+        log.info(`Retrying to write document to Firestore in ${reattemptCooldown / 1000}s...`);
+        setTimeout(savePostsToFirestore, reattemptCooldown, posts, attempt, timestamp);
       } else
-        log.error('Firebase: Maximum number of attempts reached. Document will not be written to Firestore.');
+        log.error('Maximum number of attempts reached. Document will not be written to Firestore.');
     });
 }
 
 function logFirebaseError(error) {
   (error.errorInfo && error.errorInfo.code)
-    ? log.error(`Firebase: ${error.errorInfo.code}`)
-    : log.error(`Firebase: ${error}`);
+    ? log.error(`${error.errorInfo.code}`)
+    : log.error(`${error}`);
 }
 
 export {
-  init, send, saveToFirestore
+  init, send, savePostsToFirestore
 };

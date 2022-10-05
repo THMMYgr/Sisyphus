@@ -1,8 +1,7 @@
 {
-    "firebaseDatabaseURL": "https://DATABASE_NAME.firebaseio.com/",
-    "firestoreCollection": "recent_posts",
-    "firestoreDocument": "recent",
-    "firestoreField": "posts",
+    "firestoreRecentPostsCollection": "recent_posts",
+    "firestoreRecentPostsDocument": "recent",
+    "firestorePostsField": "posts",
     "thmmyUsername": "USERNAME",
     "thmmyPassword": "PASSWORD",
     "dataFetchCooldown": 3000,

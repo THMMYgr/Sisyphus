@@ -9,7 +9,7 @@ if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
 const { combine, printf } = format;
 
-const logFormat = printf(info => `[${info.timestamp}] ${info.level}: ${info.message}`);
+const logFormat = printf(info => `[${info.timestamp}] [${info.level}] ${info.tag}: ${info.message}`);
 
 const appendTimestamp = format((info, opts) => {
   if (opts.tz) info.timestamp = moment().tz(opts.tz).format();
@@ -26,6 +26,9 @@ const logger = createLogger({
     }),
     logFormat
   ),
+  defaultMeta: {
+    service: 'sisyphus'
+  },
   transports: [
     new transports.DailyRotateFile({
       filename: 'Sisyphus-%DATE%-info.log',

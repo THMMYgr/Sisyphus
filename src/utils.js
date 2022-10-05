@@ -1,4 +1,4 @@
-import crypto from'crypto';
+import crypto from 'crypto';
 import isReachable from 'is-reachable';
 
 function hash(string) {
@@ -17,6 +17,4 @@ async function isThmmyReachable() {
   return isReachable('thmmy.gr').then(reachable => reachable);
 }
 
-export {
-  hash, stringifyJSONValues, isThmmyReachable
-};
+export { hash, stringifyJSONValues, isThmmyReachable };

@@ -1,8 +1,11 @@
 import fs from 'fs';
-import path from'path';
+import path from 'path';
 import moment from 'moment-timezone';
-import log from './logger.js';
+import logger from './logger.js';
 
+const log = logger.child({
+  tag: 'IOUtils'
+});
 const outDir = './out';
 const recentPostsFile = 'recent_posts.json';
 const topicsToBeMarkedFile = 'topics_to_be_marked.json';
@@ -13,17 +16,17 @@ function writeToFile(file, dir, data) {
     if (error) {
       if (error.code === 'ENOENT') {
         fs.mkdir(dir, error => {
-          if (error) log.error(`IOUtils: ${error}`);
+          if (error) log.error(`${error}`);
           else {
             fs.writeFile(filePath, data, error => {
-              if (error) log.error(`IOUtils: ${error}`);
+              if (error) log.error(`${error}`);
             });
           }
         });
-      } else log.error(`IOUtils: ${error}`);
+      } else log.error(`${error}`);
     } else {
       fs.writeFile(filePath, data, error => {
-        if (error) log.error(`IOUtils: ${error}`);
+        if (error) log.error(`${error}`);
       });
     }
   });
@@ -39,9 +42,9 @@ function writeToFileSync(file, dir, data) {
         fs.mkdirSync(dir);
         fs.writeFileSync(filePath, data);
       } catch (error) {
-        log.error(`IOUtils: ${error}`);
+        log.error(`${error}`);
       }
-    } else log.error(`IOUtils: ${error}`);
+    } else log.error(`${error}`);
   }
 }
 
@@ -65,11 +68,9 @@ function getTopicsToBeMarked() {
     const filePath = path.join(outDir, topicsToBeMarkedFile);
     if (fs.statSync(filePath)) return JSON.parse(fs.readFileSync(filePath));
   } catch (error) {
-    if (error.code !== 'ENOENT') log.warn(`IOUtils: Error reading topics-to-be-marked-as-unread backup: ${error}`);
+    if (error.code !== 'ENOENT') log.warn(`Error reading topics-to-be-marked-as-unread backup: ${error}`);
   }
   return [];
 }
 
-export {
-  writePostsToFile, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked, getTopicsToBeMarked
-};
+export { writePostsToFile, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked, getTopicsToBeMarked };
