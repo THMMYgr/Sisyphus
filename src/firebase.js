@@ -1,4 +1,7 @@
-import admin from 'firebase-admin';
+import { cert, initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
+
 import logger from './logger.js';
 import config from '../config/config.json' assert {type: 'json'};
 import serviceAccount from '../config/serviceAccountKey.json' assert {type: 'json'};
@@ -16,15 +19,19 @@ const log = logger.child({ tag: 'Firebase' });
 const reattemptCooldown = 2000;
 const maxAttempts = 100;
 
-let sisyphusStatusDocRef; // Firestore Sisyphus status document reference
-let recentPostsDocRef; // Firestore recent posts document reference
+let sisyphusStatusDocRef, recentPostsDocRef; // Firestore document references
+let messaging;
 
 async function init() {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+  const app = initializeApp({
+    credential: cert(serviceAccount)
   });
-  sisyphusStatusDocRef = admin.firestore().collection(firestoreSisyphusCollection).doc(firestoreSisyphusStatusDocument);
-  recentPostsDocRef = admin.firestore().collection(firestoreThmmyCollection).doc(firestoreRecentPostsDocument);
+
+  let firestore = getFirestore(app);
+  messaging = getMessaging(app);
+
+  sisyphusStatusDocRef = firestore.collection(firestoreSisyphusCollection).doc(firestoreSisyphusStatusDocument);
+  recentPostsDocRef = firestore.collection(firestoreThmmyCollection).doc(firestoreRecentPostsDocument);
 
   log.info(`Initialization successful for project ${serviceAccount.project_id}!`);
 }
@@ -36,7 +43,7 @@ function send(topic, post, attempt = 1) {
   else
     messageInfo = `BOARD message (boardId: ${post.boardId}, topicId: ${post.topicId}, postId: ${post.postId})`;
 
-  admin.messaging().sendToTopic(`/topics/${topic}`, {
+  messaging.sendToTopic(`/topics/${topic}`, {
     data: post
   }, {
     priority: 'high'
