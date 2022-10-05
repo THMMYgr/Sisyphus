@@ -20,6 +20,7 @@ const { version } = packageJSON;
 const {
   thmmyUsername,
   thmmyPassword,
+  healthCheckTimestampUpdateInterval,
   dataFetchCooldown,
   extraBoards,
   recentPostsLimit,
@@ -60,6 +61,9 @@ async function init() {
     savePosts(posts); // Save initial posts
     postsHash = hash(JSON.stringify(posts));
     latestPostId = posts.length > 0 ? posts[0].postId : -1;
+
+    setInterval(firebase.saveHealthCheckTimestampToFirestore, healthCheckTimestampUpdateInterval);
+
     log.verbose('Initialization successful!');
   } catch (error) {
     if (!error.code) error.code = 'EOTHER';

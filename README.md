@@ -22,7 +22,7 @@ service cloud.firestore {
 }
 ```
 
-This will also expose a REST API endpoint at https://firestore.googleapis.com/v1/projects/FIREBASE_PROJECT_ID/databases/(default)/documents/recent_posts/recent/
+This will also expose a REST API endpoint at https://firestore.googleapis.com/v1/projects/FIREBASE_PROJECT_ID/databases/(default)/documents/thmmy/recent_posts/
 that will publicly provide the retrieved recent posts.
 
 ### Development
