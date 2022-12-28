@@ -66,7 +66,7 @@ sudo -s
 
 Install [nvm](https://github.com/creationix/nvm) with:
 ```bash
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.39.3/install.sh | bash
 ```
 
 Install node using nvm:
@@ -79,15 +79,13 @@ nvm install node
 Allow npm update checks with:
 ```bash
 exit  # To exit root terminal
-sudo chown -R $USER:$(id -gn $USER) /home/$USER/.config
+sudo chown -R $USER:$(id -gn $USER) /home/$USER/.config  # Create file if needed (touch .config)
 sudo -s # To enter root terminal again
 ```
 
-Install [yarn](https://yarnpkg.com/) and [pm2](https://pm2.io/) globally. Also install [pm2-logrotate](https://github.com/keymetrics/pm2-logrotate):
+Install [yarn](https://yarnpkg.com/):
 ```bash
 npm install -g yarn
-yarn global add pm2
-pm2 install pm2-logrotate
 ```
 
 Clone Sisyphus using git:
@@ -106,37 +104,22 @@ Edit the *config/config.json* file (e.g. with `nano config/config.json`), add a 
 cp -rf config Sisyphus-prod
 ```
 
-Install dependencies and run Sisyphus using pm2:
+Install dependencies and run Sisyphus:
 ```bash
 cd Sisyphus-prod
 yarn
-NODE_ENV=production pm2 start app.js --name Sisyphus-prod   # Optional: --max-memory-restart ***M
+NODE_ENV=production yarn start
 ```
 
 **Note**: Sisyphus is rather silent in production mode. For verbose log messages, also set `LOG_LEVEL=verbose`.
-
-Configure pm2 to restart itself and the process:
-```bash
-pm2 startup ubuntu  # Sets a startup hook
-pm2 save  # Saves current process list
-```
-
-To monitor Sisyphus you can use `pm2 list` and `pm2 monit` as root.
 
 #### Updating
 
 **Note**: Run the commands below as root.
 
-You can update pm2 with:
-```bash
-yarn global upgrade pm2
-pm2 update  # Updates the in-memory PM2 process
-```
-
 To update node (and npm):
 ```bash
 nvm install node --reinstall-packages-from=node # Installs the latest node version
-pm2 startup ubuntu  # Because the command above will change the pm2 path (https://pm2.io/doc/en/runtime/guide/startup-hook/)
 ```
 
 To update yarn:
