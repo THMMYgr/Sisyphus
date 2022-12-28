@@ -1,6 +1,5 @@
 ### Node ###
 /node_modules
-package-lock.json
 
 # Generated files
 /out
@@ -12,6 +11,3 @@ package-lock.json
 
 # Jetbrains
 .idea
-
-# Yarn
-yarn.lock

@@ -1,70 +1,120 @@
-const admin = require('firebase-admin');
-const log = require('./logger');
+import { cert, initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
+import { getConfig, getServiceAccountKey } from './ioUtils.js';
 
-const { firebaseServiceAccountKey, firebaseDatabaseURL, firestoreCollection, firestoreDocument, firestoreField } = require('../config/config.json');
+import logger from './logger.js';
 
-const serviceAccount = require(`../config/${firebaseServiceAccountKey}`);
+const {
+  firestoreSisyphusCollection,
+  firestoreSisyphusStatusDocument,
+  firestoreHealthCheckTimestampField,
+  firestoreThmmyCollection,
+  firestoreRecentPostsDocument,
+  firestorePostsField
+} = getConfig();
 
+const serviceAccount = getServiceAccountKey();
+
+const log = logger.child({ tag: 'Firebase' });
 const reattemptCooldown = 2000;
 const maxAttempts = 100;
 
-let docRef; // Firestore document reference
+let sisyphusStatusDocRef, recentPostsDocRef; // Firestore document references
+let messaging;
 
 async function init() {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: firebaseDatabaseURL
+  const app = initializeApp({
+    credential: cert(serviceAccount)
   });
-  log.verbose('Firebase: Initialization successful!');
 
-  docRef = admin.firestore().collection(firestoreCollection).doc(firestoreDocument);
+  let firestore = getFirestore(app);
+  messaging = getMessaging(app);
+
+  sisyphusStatusDocRef = firestore.collection(firestoreSisyphusCollection).doc(firestoreSisyphusStatusDocument);
+  recentPostsDocRef = firestore.collection(firestoreThmmyCollection).doc(firestoreRecentPostsDocument);
+
+  log.info(`Initialization successful for project ${serviceAccount.project_id}!`);
 }
 
 function send(topic, post, attempt = 1) {
   let messageInfo;
-  if (!topic.includes('b')) messageInfo = `TOPIC message (topicId: ${post.topicId}, postId: ${post.postId})`;
-  else messageInfo = `BOARD message (boardId: ${post.boardId}, topicId: ${post.topicId}, postId: ${post.postId})`;
+  if (!topic.includes('b'))
+    messageInfo = `TOPIC message (topicId: ${post.topicId}, postId: ${post.postId})`;
+  else
+    messageInfo = `BOARD message (boardId: ${post.boardId}, topicId: ${post.topicId}, postId: ${post.postId})`;
 
-  admin.messaging().sendToTopic(`/topics/${topic}`, {
+  messaging.sendToTopic(`/topics/${topic}`, {
     data: post
   }, {
     priority: 'high'
   })
-    .then((response) => {
-      log.info(`Firebase: Successfully sent ${messageInfo} with messageId: ${response.messageId}`);
+    .then(response => {
+      log.info(`Successfully sent ${messageInfo} with messageId: ${response.messageId}`);
     })
-    .catch((error) => {
-      log.error(`Firebase: Error sending ${messageInfo} (attempt ${attempt})`);
+    .catch(error => {
+      log.error(`Error sending ${messageInfo} (attempt ${attempt})`);
       logFirebaseError(error);
       if (attempt < maxAttempts) {
         attempt++;
-        log.info(`Firebase: Retrying to send ${messageInfo} in ${reattemptCooldown / 1000}s...`);
+        log.info(`Retrying to send ${messageInfo} in ${reattemptCooldown / 1000}s...`);
         setTimeout(send, reattemptCooldown, topic, post, attempt);
-      } else log.error(`Firebase: Maximum number of attempts reached. ${messageInfo} will not be delivered.`);
+      } else log.error(`Maximum number of attempts reached. ${messageInfo} will not be delivered.`);
     });
 }
 
-function saveToFirestore(posts) {
+async function saveFieldToFirestore(docRef, field, data, logLevel='info') {
+  try {
+    await docRef.set({[field]: data});
+    const message = `Written successfully to Firestore document (id: ${docRef.id}, field: ${field})!`;
+    log.log(logLevel,message);
+  }
+  catch(error) {
+    log.error(`Error while writing to Firestore document (id: ${docRef.id}, field: ${field}).`);
+    logFirebaseError(error);
+    throw(error);
+  }
+}
+
+let latestPostsToBeSavedTimestamp = 0;
+
+function savePostsToFirestore(posts, attempt = 1, timestamp = +new Date()) {
+  if (attempt === 1)
+    latestPostsToBeSavedTimestamp = timestamp;
+  else if (timestamp < latestPostsToBeSavedTimestamp) {
+    log.info('Document will not be written to Firestore in favor of a newer one.');
+    return;
+  }
+
   // Because Firestore doesn't support JavaScript objects with custom prototypes
   // (i.e. objects that were created via the 'new' operator).
   posts = posts.map(post => JSON.parse(JSON.stringify(post)));
 
-  docRef.set({
-    [firestoreField]: posts
-  })
-    .then(() => {
-      log.info('Firebase: Firestore document written successfully!');
-    })
-    .catch((error) => {
-      log.error('Firebase: Firestore error while writing document.');
-      logFirebaseError(error);
+  saveFieldToFirestore(recentPostsDocRef, firestorePostsField, posts)
+    .catch(() => {
+      log.error(`Error while writing recent posts document to Firestore (attempt ${attempt}).`);
+      if (attempt < maxAttempts) {
+        attempt++;
+        log.info(`Retrying to write document to Firestore in ${reattemptCooldown / 1000}s...`);
+        setTimeout(savePostsToFirestore, reattemptCooldown, posts, attempt, timestamp);
+      } else
+        log.error('Maximum number of attempts reached. Document will not be written to Firestore.');
+    });
+}
+
+function saveHealthCheckTimestampToFirestore() {
+  saveFieldToFirestore(sisyphusStatusDocRef, firestoreHealthCheckTimestampField, +new Date(), 'verbose')
+    .catch(() => {
+      log.error(`Error while writing current timestamp to Firestore.`);
     });
 }
 
 function logFirebaseError(error) {
-  (error.errorInfo && error.errorInfo.code) ? log.error(`Firebase: ${error.errorInfo.code}`) : log.error(`Firebase: ${error}`);
+  (error.errorInfo && error.errorInfo.code)
+    ? log.error(`${error.errorInfo.code}`)
+    : log.error(`${error}`);
 }
 
-module.exports = {
-  init, send, saveToFirestore
+export {
+  init, send, saveHealthCheckTimestampToFirestore, savePostsToFirestore
 };

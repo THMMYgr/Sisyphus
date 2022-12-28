@@ -1,15 +1,15 @@
-const { createLogger, format, transports } = require('winston');
-require('winston-daily-rotate-file');
-const moment = require('moment-timezone');
-const fs = require('fs');
+import { createLogger, format, transports } from 'winston';
+import 'winston-daily-rotate-file';
+import moment from 'moment-timezone';
+import fs from 'fs';
 
 const logDir = 'log';
 
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
-const { combine, timestamp, printf } = format;
+const { combine, printf } = format;
 
-const logFormat = printf(info => `[${info.timestamp}] ${info.level}: ${info.message}`);
+const logFormat = printf(info => `[${info.timestamp}] [${info.level}] ${info.tag}: ${info.message}`);
 
 const appendTimestamp = format((info, opts) => {
   if (opts.tz) info.timestamp = moment().tz(opts.tz).format();
@@ -26,6 +26,9 @@ const logger = createLogger({
     }),
     logFormat
   ),
+  defaultMeta: {
+    service: 'sisyphus'
+  },
   transports: [
     new transports.DailyRotateFile({
       filename: 'Sisyphus-%DATE%-info.log',
@@ -64,6 +67,7 @@ if (process.env.NODE_ENV !== 'production') {
   logger.add(new transports.Console({
     level: logLevel,
     format: combine(
+      format.colorize(),
       appendTimestamp({
         tz: 'Europe/Athens'
       }),
@@ -73,8 +77,8 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-process.on('unhandledRejection', (reason) => {
+process.on('unhandledRejection', reason => {
   throw reason; // Will be handled by winston
 });
 
-module.exports = logger;
+export default logger;
