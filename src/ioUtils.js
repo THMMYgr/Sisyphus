@@ -22,11 +22,11 @@ function readJSONFile(filePath){
 }
 
 function getConfig(){
-  return fs.existsSync(dockerSecretConfigPath) ? readJSONFile(dockerSecretConfigPath) : defaultConfigPath;
+  return fs.existsSync(dockerSecretConfigPath) ? readJSONFile(dockerSecretConfigPath) : readJSONFile(defaultConfigPath);
 }
 
 function getServiceAccountKey(){
-  return fs.existsSync(dockerSecretServiceAccountKeyPath) ? readJSONFile(dockerSecretServiceAccountKeyPath) : defaultServiceAccountKeyPath;
+  return fs.existsSync(dockerSecretServiceAccountKeyPath) ? readJSONFile(dockerSecretServiceAccountKeyPath) : readJSONFile(defaultServiceAccountKeyPath);
 }
 
 function writeToFile(file, dir, data) {
