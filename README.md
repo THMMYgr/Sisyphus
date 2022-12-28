@@ -58,17 +58,12 @@ mkdir config
 cp Sisyphus/config/config.json config
 ```
 
-Edit the *config/config.json* file (e.g. with `nano config/config.json`), add a valid *serviceAccountKey.json* inside *config* and copy everything to *Sisyphus/config* with:
-```bash
-cp -rf config Sisyphus
-```
-
-**Note**: Sisyphus is rather silent in production mode. For verbose log messages, also add `ENV LOG_LEVEL verbose` to Dockerfile.
+Edit the *config/config.json* file (e.g. with `nano config/config.json`) and add a valid *serviceAccountKey.json* inside *config*.
 
 Run the following commands to set up Docker and run Sisyphus:
 ```bash
 docker swarm init
-docker build -t sisyphus .
+docker build -t sisyphus ./Sisyphus/
 docker secret create sisyphus-config ./config/config.json
 docker secret create sisyphus-service-account-key ./config/serviceAccountKey.json
 docker service create --name sisyphus-service \
@@ -76,3 +71,5 @@ docker service create --name sisyphus-service \
     --secret sisyphus-service-account-key \
     sisyphus
 ```
+
+**Note**: Sisyphus is rather silent in production mode. For verbose log messages, also add `ENV LOG_LEVEL verbose` to Dockerfile.
