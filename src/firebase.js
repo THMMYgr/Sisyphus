@@ -62,10 +62,11 @@ function send(topic, post, attempt = 1) {
     });
 }
 
-async function saveFieldToFirestore(docRef, field, data) {
+async function saveFieldToFirestore(docRef, field, data, logLevel='info') {
   try {
     await docRef.set({[field]: data});
-    log.info(`Written successfully to Firestore document (id: ${docRef.id}, field: ${field})!`);
+    const message = `Written successfully to Firestore document (id: ${docRef.id}, field: ${field})!`;
+    log.log(logLevel,message);
   }
   catch(error) {
     log.error(`Error while writing to Firestore document (id: ${docRef.id}, field: ${field}).`);
@@ -101,7 +102,7 @@ function savePostsToFirestore(posts, attempt = 1, timestamp = +new Date()) {
 }
 
 function saveHealthCheckTimestampToFirestore() {
-  saveFieldToFirestore(sisyphusStatusDocRef, firestoreHealthCheckTimestampField, +new Date())
+  saveFieldToFirestore(sisyphusStatusDocRef, firestoreHealthCheckTimestampField, +new Date(), 'verbose')
     .catch(() => {
       log.error(`Error while writing current timestamp to Firestore.`);
     });
