@@ -6,9 +6,28 @@ import logger from './logger.js';
 const log = logger.child({
   tag: 'IOUtils'
 });
+
+const defaultConfigPath = './config/config.json';
+const defaultServiceAccountKeyPath = './config/serviceAccountKey.json';
+const dockerSecretConfigPath = '/run/secrets/sisyphus-config';
+const dockerSecretServiceAccountKeyPath = '/run/secrets/sisyphus-service-account-key';
+
 const outDir = './out';
 const recentPostsFile = 'recent_posts.json';
 const topicsToBeMarkedFile = 'topics_to_be_marked.json';
+
+function readJSONFile(filePath){
+  let data = fs.readFileSync(filePath);
+  return JSON.parse(data.toString());
+}
+
+function getConfig(){
+  return fs.existsSync(dockerSecretConfigPath) ? readJSONFile(dockerSecretConfigPath) : defaultConfigPath;
+}
+
+function getServiceAccountKey(){
+  return fs.existsSync(dockerSecretServiceAccountKeyPath) ? readJSONFile(dockerSecretServiceAccountKeyPath) : defaultServiceAccountKeyPath;
+}
 
 function writeToFile(file, dir, data) {
   const filePath = path.join(dir, file);
@@ -73,4 +92,4 @@ function getTopicsToBeMarked() {
   return [];
 }
 
-export { writePostsToFile, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked, getTopicsToBeMarked };
+export { readJSONFile, getConfig, getServiceAccountKey, writePostsToFile, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked, getTopicsToBeMarked };

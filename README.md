@@ -1,5 +1,4 @@
 # Sisyphus
-[![Dependencies](https://img.shields.io/david/ThmmyNoLife/Sisyphus.svg)](https://david-dm.org/ThmmyNoLife/Sisyphus)
 ![Last Commit](https://img.shields.io/github/last-commit/ThmmyNoLife/Sisyphus/develop.svg)
 
 Backend service that fetches data from [thmmy.gr](https://www.thmmy.gr/) and provides them to  [mTHMMY](https://github.com/ThmmyNoLife/mTHMMY) through Firebase.
@@ -27,13 +26,7 @@ that will publicly provide the retrieved recent posts.
 
 ### Development
 
-Install dependencies using [yarn](https://yarnpkg.com/) (recommended):
-
-```bash
-yarn
-```
-
-or [npm](https://www.npmjs.com/):
+Install dependencies using [npm](https://www.npmjs.com/):
 
 ```bash
 npm install
@@ -41,13 +34,7 @@ npm install
 
 Then set up the required configuration in the *config* directory by adding the *serviceAccountKey.json* there and by editing the *config.json* file.
 
-Finally, start the app either by using yarn:
-
-```bash
-yarn start
-```
-
-or npm:
+Finally, start the app:
 
 ```bash
 npm start
@@ -57,74 +44,35 @@ npm start
 
 #### Initial setup
 
-A quick proposed way to set up everything in production from scratch is the following (Ubuntu server):
+The proposed way to run Sisyphus in production is by using [Docker](https://www.docker.com/).
 
-Open a root terminal to make sure you don't run into permission problems:
+After installing Docker, clone Sisyphus using git:
 ```bash
-sudo -s
+git clone -b master --depth=1 https://github.com/ThmmyNoLife/Sisyphus.git Sisyphus
 ```
 
-Install [nvm](https://github.com/creationix/nvm) with:
-```bash
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.39.3/install.sh | bash
-```
-
-Install node using nvm:
-```bash
-nvm install node
-```
-
-**Note**: If you get `nvm: command not found` after running the command above, simply close your current terminal and open a new one.
-
-Allow npm update checks with:
-```bash
-exit  # To exit root terminal
-sudo chown -R $USER:$(id -gn $USER) /home/$USER/.config  # Create file if needed (touch .config)
-sudo -s # To enter root terminal again
-```
-
-Install [yarn](https://yarnpkg.com/):
-```bash
-npm install -g yarn
-```
-
-Clone Sisyphus using git:
-```bash
-git clone -b master --depth=1 https://github.com/ThmmyNoLife/Sisyphus.git Sisyphus-prod
-```
-
-Create a directory name *config* where a backup of the required configuration will be kept. After that, copy the template *config.json* file from the *Sisyphus-prod/config* directory to *config*:
+Create a directory named *config*, where a backup of the required configuration will be kept (or be deleted afterwards).
+After that, copy the template *config.json* file from the *Sisyphus/config* directory to *config*:
 ```bash
 mkdir config
-cp Sisyphus-prod/config/config.json config
+cp Sisyphus/config/config.json config
 ```
 
-Edit the *config/config.json* file (e.g. with `nano config/config.json`), add a valid *serviceAccountKey.json* inside *config* and copy everything to *Sisyphus-prod/config* with:
+Edit the *config/config.json* file (e.g. with `nano config/config.json`), add a valid *serviceAccountKey.json* inside *config* and copy everything to *Sisyphus/config* with:
 ```bash
-cp -rf config Sisyphus-prod
+cp -rf config Sisyphus
 ```
 
-Install dependencies and run Sisyphus:
+**Note**: Sisyphus is rather silent in production mode. For verbose log messages, also add `ENV LOG_LEVEL verbose` to Dockerfile.
+
+Run the following commands to set up Docker and run Sisyphus:
 ```bash
-cd Sisyphus-prod
-yarn
-NODE_ENV=production yarn start
+docker swarm init
+docker build -t sisyphus .
+docker secret create sisyphus-config ./config/config.json
+docker secret create sisyphus-service-account-key ./config/serviceAccountKey.json
+docker service create --name sisyphus-service \
+    --secret sisyphus-config \
+    --secret sisyphus-service-account-key \
+    sisyphus
 ```
-
-**Note**: Sisyphus is rather silent in production mode. For verbose log messages, also set `LOG_LEVEL=verbose`.
-
-#### Updating
-
-**Note**: Run the commands below as root.
-
-To update node (and npm):
-```bash
-nvm install node --reinstall-packages-from=node # Installs the latest node version
-```
-
-To update yarn:
-```bash
-npm update -g yarn
-```
-
-To update nvm, check [here](https://github.com/creationix/nvm) for the latest install script.

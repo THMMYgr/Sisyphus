@@ -7,16 +7,16 @@ import logger from './src/logger.js';
 import { hash, stringifyJSONValues, isThmmyReachable } from './src/utils.js';
 
 import {
+  readJSONFile,
+  getConfig,
   writePostsToFile,
   getTopicsToBeMarked,
   writeTopicsToBeMarkedToFile,
   clearBackedUpTopicsToBeMarked
 } from './src/ioUtils.js';
 
-import packageJSON from './package.json' assert {type: 'json'};
-import config from './config/config.json' assert {type: 'json'};
+const { version } = readJSONFile('./package.json');
 
-const { version } = packageJSON;
 const {
   thmmyUsername,
   thmmyPassword,
@@ -25,7 +25,7 @@ const {
   extraBoards,
   recentPostsLimit,
   savePostsToFile
-} = config;
+} = getConfig();
 
 const log = logger.child({ tag: 'App' });
 const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
@@ -43,9 +43,9 @@ async function init() {
   try {
     log.info(`Sisyphus v${version} started in ${mode} mode!`);
     await firebase.init();
-    log.verbose('Logging in to thmmy.gr...');
+    log.info('Logging in to thmmy.gr...');
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
-    log.verbose('Login successful!');
+    log.info('Login successful!');
     await markBackedUpTopicsAsUnread(); // In case of an unexpected restart
     log.verbose('Fetching initial posts...');
     let posts = await getUnreadPosts(cookieJar, {

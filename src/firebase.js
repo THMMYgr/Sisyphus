@@ -1,10 +1,9 @@
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
+import { getConfig, getServiceAccountKey } from './ioUtils.js';
 
 import logger from './logger.js';
-import config from '../config/config.json' assert {type: 'json'};
-import serviceAccount from '../config/serviceAccountKey.json' assert {type: 'json'};
 
 const {
   firestoreSisyphusCollection,
@@ -13,7 +12,9 @@ const {
   firestoreThmmyCollection,
   firestoreRecentPostsDocument,
   firestorePostsField
-} = config;
+} = getConfig();
+
+const serviceAccount = getServiceAccountKey();
 
 const log = logger.child({ tag: 'Firebase' });
 const reattemptCooldown = 2000;
