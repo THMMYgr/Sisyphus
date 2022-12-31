@@ -1,0 +1,25 @@
+services:
+  sisyphus:
+    build:
+       context: .
+    volumes:
+      - log:/app/log
+      - out:/app/out
+    secrets:
+       - sisyphus-config
+       - sisyphus-service-account-key
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+
+secrets:
+   sisyphus-config:
+     file: ./config/config.json
+   sisyphus-service-account-key:
+     file: ./config/serviceAccountKey.json
+
+volumes:
+    log:
+    out:

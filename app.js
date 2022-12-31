@@ -1,5 +1,5 @@
 import { performance } from 'perf_hooks';
-import { setTimeout } from 'timers/promises';
+import { setTimeout as setTimeoutPromise} from 'node:timers/promises';
 import { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } from 'thmmy';
 
 import * as firebase from './src/firebase.js';
@@ -33,12 +33,6 @@ const reachableCheckCooldown = 2000;
 
 let nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
 
-init().then(() => {
-  main();
-}).catch(error => {
-  log.error(`${error}`);
-});
-
 async function init() {
   try {
     log.info(`Sisyphus v${version} started in ${mode} mode!`);
@@ -66,15 +60,17 @@ async function init() {
 
     log.verbose('Initialization successful!');
   } catch (error) {
-    if (!error.code) error.code = 'EOTHER';
-    throw new Error(`${error}(${error.code})`);
+    if (!error.code)
+      error.code = 'EOTHER';
+    log.error(`${error} (${error.code})`);
+    process.exit(1);
   }
 }
 
 async function healthCheckUpdater(){
   while (true) {
     firebase.saveHealthCheckTimestampToFirestore();
-    await setTimeout(healthCheckTimestampUpdateInterval);
+    await setTimeoutPromise(healthCheckTimestampUpdateInterval);
   }
 }
 
@@ -84,14 +80,14 @@ async function main() {
       await refreshSessionDataIfNeeded();
       await fetch();
       log.verbose(`Cooling down for ${dataFetchCooldown / 1000}s...`);
-      await setTimeout(dataFetchCooldown);
+      await setTimeoutPromise(dataFetchCooldown);
     } catch (error) {
       log.error(`${error}`);
       try {
         if (!await isThmmyReachable()) {
           log.error('Lost connection to thmmy.gr. Waiting to be restored...');
           while (!await isThmmyReachable())
-            await setTimeout(reachableCheckCooldown);
+            await setTimeoutPromise(reachableCheckCooldown);
           log.info('Connection to thmmy.gr is restored!');
         }
         if (!await refreshSessionDataIfNeeded() && error.code && error.code === 'EINVALIDSESC') {
@@ -101,6 +97,7 @@ async function main() {
         await markBackedUpTopicsAsUnread();
       } catch (error) {
         log.error(`${error}`);
+        process.exit(2);
       }
     }
   }
@@ -189,7 +186,7 @@ async function fetch() {
 }
 
 async function refreshSessionDataIfNeeded() {
-  if (!cookieJar.getCookieString('https://www.thmmy.gr').includes('THMMYgrC00ki3')) {
+  if (!cookieJar.getCookieStringSync('https://www.thmmy.gr').includes('THMMYgrC00ki3')) {
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword)); // Refresh cookieJar & sesc
     log.info('CookieJar and sesc were refreshed.');
     return true;
@@ -228,3 +225,6 @@ async function markBackedUpTopicsAsUnread() {
     } else resolve();
   }));
 }
+
+await init();
+setImmediate(main);

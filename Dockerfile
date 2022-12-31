@@ -1,6 +1,6 @@
 FROM node:18.12.1-alpine
 
-LABEL maintainer "ezerous@gmail.com"
+LABEL version=2.1.0 maintainer="ezerous@gmail.com"
 
 RUN apk update && apk add nano
 
