@@ -60,16 +60,9 @@ cp Sisyphus/config/config.json config
 
 Edit the *config/config.json* file (e.g. with `nano config/config.json`) and add a valid *serviceAccountKey.json* inside *config*.
 
-Run the following commands to set up Docker and run Sisyphus:
+Run Sisyphus with:
 ```bash
-docker swarm init
-docker build -t sisyphus ./Sisyphus/
-docker secret create sisyphus-config ./config/config.json
-docker secret create sisyphus-service-account-key ./config/serviceAccountKey.json
-docker service create --name sisyphus-service \
-    --secret sisyphus-config \
-    --secret sisyphus-service-account-key \
-    sisyphus
+docker compose up
 ```
 
 **Note**: Sisyphus is rather silent in production mode. For verbose log messages, also add `ENV LOG_LEVEL verbose` to Dockerfile.
