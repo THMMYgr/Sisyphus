@@ -1,7 +1,8 @@
 {
     "firestoreSisyphusCollection": "sisyphus",
     "firestoreSisyphusStatusDocument": "sisyphus_status",
-    "firestoreHealthCheckTimestampField": "health_check_timestamp",
+    "firestoreHealthCheckDateTimeField": "health_check_date_time",
+    "firestoreNumberOfIterationsField": "number_of_iterations",
     "firestoreThmmyCollection": "thmmy",
     "firestoreRecentPostsDocument": "recent_posts",
     "firestorePostsField": "posts",

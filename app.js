@@ -56,7 +56,7 @@ async function init() {
     postsHash = hash(JSON.stringify(posts));
     latestPostId = posts.length > 0 ? posts[0].postId : -1;
 
-    healthCheckUpdater();
+    statusUpdater();
 
     log.verbose('Initialization successful!');
   } catch (error) {
@@ -67,9 +67,9 @@ async function init() {
   }
 }
 
-async function healthCheckUpdater(){
+async function statusUpdater(){
   while (true) {
-    firebase.saveHealthCheckTimestampToFirestore();
+    firebase.saveStatusToFirestore(nIterations);
     await setTimeoutPromise(healthCheckTimestampUpdateInterval);
   }
 }
