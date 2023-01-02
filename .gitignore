@@ -11,3 +11,4 @@
 
 # Jetbrains
 .idea
+*.heapsnapshot

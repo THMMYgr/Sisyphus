@@ -9,6 +9,7 @@ import { hash, stringifyJSONValues, isThmmyReachable } from './src/utils.js';
 import {
   readJSONFile,
   getConfig,
+  getThmmyCredentials,
   writePostsToFile,
   getTopicsToBeMarked,
   writeTopicsToBeMarkedToFile,
@@ -18,14 +19,17 @@ import {
 const { version } = readJSONFile('./package.json');
 
 const {
-  thmmyUsername,
-  thmmyPassword,
-  healthCheckTimestampUpdateInterval,
+  statusUpdateInterval,
   dataFetchCooldown,
   extraBoards,
   recentPostsLimit,
   savePostsToFile
 } = getConfig();
+
+const {
+  thmmyUsername,
+  thmmyPassword
+} = getThmmyCredentials();
 
 const log = logger.child({ tag: 'App' });
 const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
@@ -70,7 +74,7 @@ async function init() {
 async function statusUpdater(){
   while (true) {
     firebase.saveStatusToFirestore(nIterations);
-    await setTimeoutPromise(healthCheckTimestampUpdateInterval);
+    await setTimeoutPromise(statusUpdateInterval);
   }
 }
 

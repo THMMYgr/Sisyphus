@@ -8,8 +8,11 @@ const log = logger.child({
 });
 
 const defaultConfigPath = './config/config.json';
+const defaultThmmyCredentialsPath = './config/thmmyCredentials.json';
 const defaultServiceAccountKeyPath = './config/serviceAccountKey.json';
-const dockerSecretConfigPath = '/run/secrets/sisyphus-config';
+
+const dockerConfigPath = '/sisyphus-config';
+const dockerSecretThmmyCredentialsPath = '/run/secrets/sisyphus-thmmy-credentials';
 const dockerSecretServiceAccountKeyPath = '/run/secrets/sisyphus-service-account-key';
 
 const outDir = './out';
@@ -22,11 +25,21 @@ function readJSONFile(filePath){
 }
 
 function getConfig(){
-  return fs.existsSync(dockerSecretConfigPath) ? readJSONFile(dockerSecretConfigPath) : readJSONFile(defaultConfigPath);
+  return fs.existsSync(dockerConfigPath)
+    ? readJSONFile(dockerConfigPath)
+    : readJSONFile(defaultConfigPath);
+}
+
+function getThmmyCredentials(){
+  return fs.existsSync(dockerSecretThmmyCredentialsPath)
+    ? readJSONFile(dockerSecretThmmyCredentialsPath)
+    : readJSONFile(defaultThmmyCredentialsPath);
 }
 
 function getServiceAccountKey(){
-  return fs.existsSync(dockerSecretServiceAccountKeyPath) ? readJSONFile(dockerSecretServiceAccountKeyPath) : readJSONFile(defaultServiceAccountKeyPath);
+  return fs.existsSync(dockerSecretServiceAccountKeyPath)
+    ? readJSONFile(dockerSecretServiceAccountKeyPath)
+    : readJSONFile(defaultServiceAccountKeyPath);
 }
 
 function writeToFile(file, dir, data) {
@@ -92,4 +105,4 @@ function getTopicsToBeMarked() {
   return [];
 }
 
-export { readJSONFile, getConfig, getServiceAccountKey, writePostsToFile, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked, getTopicsToBeMarked };
+export { readJSONFile, getConfig, getThmmyCredentials, getServiceAccountKey, writePostsToFile, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked, getTopicsToBeMarked };

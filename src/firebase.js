@@ -105,7 +105,7 @@ function savePostsToFirestore(posts, attempt = 1, timestamp = +new Date()) {
 }
 
 function saveStatusToFirestore(nIterations) {
-  saveFieldToFirestore(sisyphusStatusDocRef, firestoreHealthCheckDateTimeField, moment().format(), true, 'verbose')
+  saveFieldToFirestore(sisyphusStatusDocRef, firestoreHealthCheckDateTimeField, moment.tz('Europe/Athens').format(), true, 'verbose')
     .catch((error) => {
       log.error(`Error while writing current dateTime to Firestore.`);
       logFirebaseError(error);

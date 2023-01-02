@@ -16,7 +16,7 @@
   "exports": "./app.js",
   "scripts": {
     "start": "node app.js",
-    "debug": "cross-env-shell node $NODE_DEBUG_OPTION app.js",
+    "debug": "cross-env-shell node $NODE_DEBUG_OPTION --inspect app.js",
     "lint": "eslint . --format table"
   },
   "dependencies": {
