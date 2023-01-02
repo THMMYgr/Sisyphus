@@ -1,14 +1,16 @@
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
-import { getConfig, getServiceAccountKey } from './ioUtils.js';
+import moment from 'moment-timezone';
 
+import { getConfig, getServiceAccountKey } from './ioUtils.js';
 import logger from './logger.js';
 
 const {
   firestoreSisyphusCollection,
   firestoreSisyphusStatusDocument,
-  firestoreHealthCheckTimestampField,
+  firestoreHealthCheckDateTimeField,
+  firestoreNumberOfIterationsField,
   firestoreThmmyCollection,
   firestoreRecentPostsDocument,
   firestorePostsField
@@ -63,9 +65,9 @@ function send(topic, post, attempt = 1) {
     });
 }
 
-async function saveFieldToFirestore(docRef, field, data, logLevel='info') {
+async function saveFieldToFirestore(docRef, field, data, merge=false, logLevel='info') {
   try {
-    await docRef.set({[field]: data});
+    await docRef.set({[field]: data}, {merge});
     const message = `Written successfully to Firestore document (id: ${docRef.id}, field: ${field})!`;
     log.log(logLevel,message);
   }
@@ -102,10 +104,17 @@ function savePostsToFirestore(posts, attempt = 1, timestamp = +new Date()) {
     });
 }
 
-function saveHealthCheckTimestampToFirestore() {
-  saveFieldToFirestore(sisyphusStatusDocRef, firestoreHealthCheckTimestampField, +new Date(), 'verbose')
-    .catch(() => {
-      log.error(`Error while writing current timestamp to Firestore.`);
+function saveStatusToFirestore(nIterations) {
+  saveFieldToFirestore(sisyphusStatusDocRef, firestoreHealthCheckDateTimeField, moment.tz('Europe/Athens').format(), true, 'verbose')
+    .catch((error) => {
+      log.error(`Error while writing current dateTime to Firestore.`);
+      logFirebaseError(error);
+    });
+
+  saveFieldToFirestore(sisyphusStatusDocRef, firestoreNumberOfIterationsField, nIterations, true, 'verbose')
+    .catch((error) => {
+      log.error(`Error while writing number of iterations to Firestore.`);
+      logFirebaseError(error);
     });
 }
 
@@ -116,5 +125,5 @@ function logFirebaseError(error) {
 }
 
 export {
-  init, send, saveHealthCheckTimestampToFirestore, savePostsToFirestore
+  init, send, savePostsToFirestore, saveStatusToFirestore
 };

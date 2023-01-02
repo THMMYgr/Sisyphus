@@ -51,25 +51,11 @@ After installing Docker, clone Sisyphus using git:
 git clone -b master --depth=1 https://github.com/ThmmyNoLife/Sisyphus.git Sisyphus
 ```
 
-Create a directory named *config*, where a backup of the required configuration will be kept (or be deleted afterwards).
-After that, copy the template *config.json* file from the *Sisyphus/config* directory to *config*:
+Navigate inside *./Sisyphus/config* directory, edit the existing files and add a valid *serviceAccountKey.json* file.
+
+From *./Sisyphus* run the app with:
 ```bash
-mkdir config
-cp Sisyphus/config/config.json config
+docker compose up
 ```
 
-Edit the *config/config.json* file (e.g. with `nano config/config.json`) and add a valid *serviceAccountKey.json* inside *config*.
-
-Run the following commands to set up Docker and run Sisyphus:
-```bash
-docker swarm init
-docker build -t sisyphus ./Sisyphus/
-docker secret create sisyphus-config ./config/config.json
-docker secret create sisyphus-service-account-key ./config/serviceAccountKey.json
-docker service create --name sisyphus-service \
-    --secret sisyphus-config \
-    --secret sisyphus-service-account-key \
-    sisyphus
-```
-
-**Note**: Sisyphus is rather silent in production mode. For verbose log messages, also add `ENV LOG_LEVEL verbose` to Dockerfile.
+**Note**: Sisyphus is rather silent in production mode. For verbose log messages, also add `ENV LOG_LEVEL verbose` to the Dockerfile.

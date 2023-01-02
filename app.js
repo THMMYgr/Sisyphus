@@ -1,5 +1,5 @@
 import { performance } from 'perf_hooks';
-import { setTimeout } from 'timers/promises';
+import { setTimeout as setTimeoutPromise} from 'node:timers/promises';
 import { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } from 'thmmy';
 
 import * as firebase from './src/firebase.js';
@@ -9,6 +9,7 @@ import { hash, stringifyJSONValues, isThmmyReachable } from './src/utils.js';
 import {
   readJSONFile,
   getConfig,
+  getThmmyCredentials,
   writePostsToFile,
   getTopicsToBeMarked,
   writeTopicsToBeMarkedToFile,
@@ -18,26 +19,23 @@ import {
 const { version } = readJSONFile('./package.json');
 
 const {
-  thmmyUsername,
-  thmmyPassword,
-  healthCheckTimestampUpdateInterval,
-  dataFetchCooldown,
+  statusUpdateInterval,
+  loopCooldown,
   extraBoards,
   recentPostsLimit,
   savePostsToFile
 } = getConfig();
+
+const {
+  thmmyUsername,
+  thmmyPassword
+} = getThmmyCredentials();
 
 const log = logger.child({ tag: 'App' });
 const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
 const reachableCheckCooldown = 2000;
 
 let nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
-
-init().then(() => {
-  main();
-}).catch(error => {
-  log.error(`${error}`);
-});
 
 async function init() {
   try {
@@ -62,48 +60,48 @@ async function init() {
     postsHash = hash(JSON.stringify(posts));
     latestPostId = posts.length > 0 ? posts[0].postId : -1;
 
-    healthCheckUpdater();
+    setImmediate(statusUpdater);
 
     log.verbose('Initialization successful!');
   } catch (error) {
-    if (!error.code) error.code = 'EOTHER';
-    throw new Error(`${error}(${error.code})`);
-  }
-}
-
-async function healthCheckUpdater(){
-  while (true) {
-    firebase.saveHealthCheckTimestampToFirestore();
-    await setTimeout(healthCheckTimestampUpdateInterval);
+    if (!error.code)
+      error.code = 'EOTHER';
+    log.error(`${error} (${error.code})`);
+    process.exit(1);
   }
 }
 
 async function main() {
-  while (true) {
+  try {
+    await refreshSessionDataIfNeeded();
+    await fetch();
+  } catch (error) {
+    log.error(`${error}`);
     try {
-      await refreshSessionDataIfNeeded();
-      await fetch();
-      log.verbose(`Cooling down for ${dataFetchCooldown / 1000}s...`);
-      await setTimeout(dataFetchCooldown);
+      if (!await isThmmyReachable()) {
+        log.error('Lost connection to thmmy.gr. Waiting to be restored...');
+        while (!await isThmmyReachable())
+          await setTimeoutPromise(reachableCheckCooldown);
+        log.info('Connection to thmmy.gr is restored!');
+      }
+      if (!await refreshSessionDataIfNeeded() && error.code && error.code === 'EINVALIDSESC') {
+        sesc = await getSesc(cookieJar); // Refresh sesc
+        log.error('sesc was refreshed.');
+      }
+      await markBackedUpTopicsAsUnread();
     } catch (error) {
       log.error(`${error}`);
-      try {
-        if (!await isThmmyReachable()) {
-          log.error('Lost connection to thmmy.gr. Waiting to be restored...');
-          while (!await isThmmyReachable())
-            await setTimeout(reachableCheckCooldown);
-          log.info('Connection to thmmy.gr is restored!');
-        }
-        if (!await refreshSessionDataIfNeeded() && error.code && error.code === 'EINVALIDSESC') {
-          sesc = await getSesc(cookieJar); // Refresh sesc
-          log.error('sesc was refreshed.');
-        }
-        await markBackedUpTopicsAsUnread();
-      } catch (error) {
-        log.error(`${error}`);
-      }
+      process.exit(2);
     }
+  } finally {
+    log.verbose(`Cooling down for ${loopCooldown / 1000}s...`);
+    setTimeout(main, loopCooldown);
   }
+}
+
+function statusUpdater(){
+  firebase.saveStatusToFirestore(nIterations);
+  setTimeout(statusUpdater, statusUpdateInterval);
 }
 
 function mergePosts(posts1, posts2) {
@@ -189,7 +187,7 @@ async function fetch() {
 }
 
 async function refreshSessionDataIfNeeded() {
-  if (!cookieJar.getCookieString('https://www.thmmy.gr').includes('THMMYgrC00ki3')) {
+  if (!cookieJar.getCookieStringSync('https://www.thmmy.gr').includes('THMMYgrC00ki3')) {
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword)); // Refresh cookieJar & sesc
     log.info('CookieJar and sesc were refreshed.');
     return true;
@@ -228,3 +226,6 @@ async function markBackedUpTopicsAsUnread() {
     } else resolve();
   }));
 }
+
+await init();
+setImmediate(main);
