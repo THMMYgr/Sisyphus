@@ -20,7 +20,7 @@ const { version } = readJSONFile('./package.json');
 
 const {
   statusUpdateInterval,
-  dataFetchCooldown,
+  loopCooldown,
   extraBoards,
   recentPostsLimit,
   savePostsToFile
@@ -60,7 +60,7 @@ async function init() {
     postsHash = hash(JSON.stringify(posts));
     latestPostId = posts.length > 0 ? posts[0].postId : -1;
 
-    statusUpdater();
+    setImmediate(statusUpdater);
 
     log.verbose('Initialization successful!');
   } catch (error) {
@@ -71,40 +71,37 @@ async function init() {
   }
 }
 
-async function statusUpdater(){
-  while (true) {
-    firebase.saveStatusToFirestore(nIterations);
-    await setTimeoutPromise(statusUpdateInterval);
+async function main() {
+  try {
+    await refreshSessionDataIfNeeded();
+    await fetch();
+  } catch (error) {
+    log.error(`${error}`);
+    try {
+      if (!await isThmmyReachable()) {
+        log.error('Lost connection to thmmy.gr. Waiting to be restored...');
+        while (!await isThmmyReachable())
+          await setTimeoutPromise(reachableCheckCooldown);
+        log.info('Connection to thmmy.gr is restored!');
+      }
+      if (!await refreshSessionDataIfNeeded() && error.code && error.code === 'EINVALIDSESC') {
+        sesc = await getSesc(cookieJar); // Refresh sesc
+        log.error('sesc was refreshed.');
+      }
+      await markBackedUpTopicsAsUnread();
+    } catch (error) {
+      log.error(`${error}`);
+      process.exit(2);
+    }
+  } finally {
+    log.verbose(`Cooling down for ${loopCooldown / 1000}s...`);
+    setTimeout(main, loopCooldown);
   }
 }
 
-async function main() {
-  while (true) {
-    try {
-      await refreshSessionDataIfNeeded();
-      await fetch();
-      log.verbose(`Cooling down for ${dataFetchCooldown / 1000}s...`);
-      await setTimeoutPromise(dataFetchCooldown);
-    } catch (error) {
-      log.error(`${error}`);
-      try {
-        if (!await isThmmyReachable()) {
-          log.error('Lost connection to thmmy.gr. Waiting to be restored...');
-          while (!await isThmmyReachable())
-            await setTimeoutPromise(reachableCheckCooldown);
-          log.info('Connection to thmmy.gr is restored!');
-        }
-        if (!await refreshSessionDataIfNeeded() && error.code && error.code === 'EINVALIDSESC') {
-          sesc = await getSesc(cookieJar); // Refresh sesc
-          log.error('sesc was refreshed.');
-        }
-        await markBackedUpTopicsAsUnread();
-      } catch (error) {
-        log.error(`${error}`);
-        process.exit(2);
-      }
-    }
-  }
+function statusUpdater(){
+  firebase.saveStatusToFirestore(nIterations);
+  setTimeout(statusUpdater, statusUpdateInterval);
 }
 
 function mergePosts(posts1, posts2) {
