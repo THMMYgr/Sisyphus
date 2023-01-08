@@ -1,6 +1,10 @@
+/* eslint-disable */
+// https://github.com/import-js/eslint-plugin-import/issues/1810
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
+/* eslint-enable */
+
 import moment from 'moment-timezone';
 
 import { getConfig, getServiceAccountKey } from './ioUtils.js';
@@ -32,7 +36,7 @@ async function init() {
     credential: cert(serviceAccount)
   });
 
-  let firestore = getFirestore(app);
+  const firestore = getFirestore(app);
   messaging = getMessaging(app);
 
   sisyphusStatusDocRef = firestore.collection(firestoreSisyphusCollection).doc(firestoreSisyphusStatusDocument);
@@ -67,16 +71,15 @@ function send(topic, post, attempt = 1) {
     });
 }
 
-async function saveFieldToFirestore(docRef, field, data, merge=false, logLevel=LOG_LEVEL_INFO) {
+async function saveFieldToFirestore(docRef, field, data, merge = false, logLevel = LOG_LEVEL_INFO) {
   try {
-    await docRef.set({[field]: data}, {merge});
+    await docRef.set({ [field]: data }, { merge });
     const message = `Successfully written to Firestore document (id: ${docRef.id}, field: ${field})!`;
-    log.log(logLevel,message);
-  }
-  catch(error) {
+    log.log(logLevel, message);
+  } catch (error) {
     log.error(`Error while writing to Firestore document (id: ${docRef.id}, field: ${field}).`);
     logFirebaseError(error);
-    throw(error);
+    throw (error);
   }
 }
 
@@ -107,32 +110,55 @@ function savePostsToFirestore(posts, attempt = 1, timestamp = +new Date()) {
 }
 
 function saveStartupDateTime(startUpTimestamp) {
-  saveFieldToFirestore(sisyphusStatusDocRef, firestoreStartUpDateTimeField, moment.tz(startUpTimestamp,'Europe/Athens').format(), true, LOG_LEVEL_VERBOSE)
-    .catch((error) => {
-      log.error(`Error while writing start up dateTime to Firestore.`);
-      logFirebaseError(error);
-    });
+  saveFieldToFirestore(
+    sisyphusStatusDocRef,
+    firestoreStartUpDateTimeField,
+    moment.tz(startUpTimestamp, 'Europe/Athens').format(),
+    true,
+    LOG_LEVEL_VERBOSE
+  ).catch(error => {
+    log.error('Error while writing start up dateTime to Firestore.');
+    logFirebaseError(error);
+  });
 }
 
 function saveStatusToFirestore(nIterations, latestSuccessfulIterationTimestamp) {
-  saveFieldToFirestore(sisyphusStatusDocRef, firestoreStatusUpdateDateTimeField, moment.tz('Europe/Athens').format(), true, LOG_LEVEL_VERBOSE)
-    .catch((error) => {
-      log.error(`Error while writing status update dateTime to Firestore.`);
+  saveFieldToFirestore(
+    sisyphusStatusDocRef,
+    firestoreStatusUpdateDateTimeField,
+    moment.tz('Europe/Athens').format(),
+    true,
+    LOG_LEVEL_VERBOSE
+  ).catch(error => {
+    log.error('Error while writing status update dateTime to Firestore.');
+    logFirebaseError(error);
+  });
+
+  saveFieldToFirestore(
+    sisyphusStatusDocRef,
+    firestoreNumberOfIterationsField,
+    nIterations,
+    true,
+    LOG_LEVEL_VERBOSE
+  ).catch(error => {
+    log.error('Error while writing number of iterations to Firestore.');
+    logFirebaseError(error);
+  });
+
+  if (latestSuccessfulIterationTimestamp) {
+    saveFieldToFirestore(
+      sisyphusStatusDocRef,
+      firestoreLatestSuccessfulIterationDateTimeField,
+      moment.tz(
+        latestSuccessfulIterationTimestamp,
+        'Europe/Athens'
+      ).format(),
+      true,
+      LOG_LEVEL_VERBOSE
+    ).catch(error => {
+      log.error('Error while writing latest successful iteration dateTime to Firestore.');
       logFirebaseError(error);
     });
-
-  saveFieldToFirestore(sisyphusStatusDocRef, firestoreNumberOfIterationsField, nIterations, true, LOG_LEVEL_VERBOSE)
-    .catch((error) => {
-      log.error(`Error while writing number of iterations to Firestore.`);
-      logFirebaseError(error);
-    });
-
-  if (latestSuccessfulIterationTimestamp){
-    saveFieldToFirestore(sisyphusStatusDocRef, firestoreLatestSuccessfulIterationDateTimeField, moment.tz(latestSuccessfulIterationTimestamp,'Europe/Athens').format(), true, LOG_LEVEL_VERBOSE)
-      .catch((error) => {
-        log.error(`Error while writing latest successful iteration dateTime to Firestore.`);
-        logFirebaseError(error);
-      });
   }
 }
 
@@ -142,6 +168,4 @@ function logFirebaseError(error) {
     : log.error(`${error}`);
 }
 
-export {
-  init, send, savePostsToFirestore, saveStartupDateTime, saveStatusToFirestore
-};
+export { init, send, savePostsToFirestore, saveStartupDateTime, saveStatusToFirestore };

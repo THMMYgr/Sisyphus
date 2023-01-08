@@ -1,12 +1,18 @@
 {
   "env": {
-    "node": true
+    "node": true,
+    "es2022": true
   },
-  "extends": "airbnb",
+  "extends": "airbnb-base",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
   "rules": {
     "arrow-parens": ["error", "as-needed"],
     "comma-dangle": ["error", "never"],
     "curly": ["error", "multi-or-nest"],
+    "import/extensions": ["error", "ignorePackages"],
     "max-len": ["error", { "code": 120, "ignoreTrailingComments": true }],
     "no-await-in-loop": "off",
     "no-console": "off",
@@ -20,10 +26,9 @@
     "no-unused-expressions": ["error", { "allowTernary": true }],
     "nonblock-statement-body-position": ["error", "any"],
     "object-curly-newline": ["error", {
-      "ObjectExpression": "always",
       "ObjectPattern": { "multiline": true },
-      "ImportDeclaration": "never",
-      "ExportDeclaration": "never"
+      "ImportDeclaration": { "multiline": true },
+      "ExportDeclaration": { "multiline": true }
     }],
     "object-curly-spacing": ["error", "always"],
     "one-var": ["error", {"separateRequires": true}],

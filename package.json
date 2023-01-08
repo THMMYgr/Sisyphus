@@ -17,7 +17,8 @@
   "scripts": {
     "start": "node app.js",
     "debug": "cross-env-shell node $NODE_DEBUG_OPTION --inspect app.js",
-    "lint": "eslint . --format table"
+    "lint": "eslint . --format table",
+    "lint-fix": "eslint . --fix"
   },
   "dependencies": {
     "firebase-admin": "~11.4.1",
@@ -29,11 +30,9 @@
   },
   "devDependencies": {
     "cross-env": "~7.0.3",
-    "eslint": "~8.24.0",
-    "eslint-config-airbnb": "~19.0.4",
-    "eslint-formatter-table": "~7.32.1",
+    "eslint": "~8.31.0",
+    "eslint-config-airbnb-base": "~15.0.0",
     "eslint-plugin-import": "~2.26.0",
-    "eslint-plugin-jsx-a11y": "~6.6.1",
-    "eslint-plugin-react": "~7.31.8"
+    "eslint-formatter-table": "~7.32.1"
   }
 }

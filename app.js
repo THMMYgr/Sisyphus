@@ -1,5 +1,5 @@
 import { performance } from 'perf_hooks';
-import { setTimeout as setTimeoutPromise} from 'node:timers/promises';
+import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
 import { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } from 'thmmy';
 import isReachable from 'is-reachable';
 
@@ -41,7 +41,7 @@ let startUpTimestamp, latestSuccessfulIterationTimestamp,
 
 async function init() {
   try {
-    startUpTimestamp =  +new Date();
+    startUpTimestamp = +new Date();
     log.info(`Sisyphus v${version} started in ${mode} mode!`);
     await thmmyToBeReachable();
     await firebase.init();
@@ -99,7 +99,7 @@ async function main() {
   }
 }
 
-function statusUpdater(){
+function statusUpdater() {
   firebase.saveStatusToFirestore(nIterations, latestSuccessfulIterationTimestamp);
   setTimeout(statusUpdater, statusUpdateInterval);
 }
