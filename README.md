@@ -1,4 +1,5 @@
 # Sisyphus
+![Version](https://img.shields.io/github/package-json/v/ThmmyNoLife/Sisyphus)
 ![Last Commit](https://img.shields.io/github/last-commit/ThmmyNoLife/Sisyphus/develop.svg)
 
 Backend service that fetches data from [thmmy.gr](https://www.thmmy.gr/) and provides them to [mTHMMY](https://github.com/ThmmyNoLife/mTHMMY) through [Firebase](https://firebase.google.com/).
