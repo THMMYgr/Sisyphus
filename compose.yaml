@@ -5,6 +5,9 @@ services:
     volumes:
       - log:/app/log
       - out:/app/out
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
     configs:
       - sisyphus-config
     secrets:

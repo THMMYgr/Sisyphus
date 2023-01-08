@@ -1,7 +1,7 @@
 # Sisyphus
 ![Last Commit](https://img.shields.io/github/last-commit/ThmmyNoLife/Sisyphus/develop.svg)
 
-Backend service that fetches data from [thmmy.gr](https://www.thmmy.gr/) and provides them to  [mTHMMY](https://github.com/ThmmyNoLife/mTHMMY) through Firebase.
+Backend service that fetches data from [thmmy.gr](https://www.thmmy.gr/) and provides them to [mTHMMY](https://github.com/ThmmyNoLife/mTHMMY) through [Firebase](https://firebase.google.com/).
 
 ## Usage
 
@@ -55,7 +55,7 @@ Navigate inside *./Sisyphus/config* directory, edit the existing files and add a
 
 From *./Sisyphus* run the app with:
 ```bash
-docker compose up
+docker compose up --detach
 ```
 
-**Note**: Sisyphus is rather silent in production mode. For verbose log messages, also add `ENV LOG_LEVEL verbose` to the Dockerfile.
+**Note**: Sisyphus is rather silent in production mode. For verbose log messages, change the environment variable `LOG_LEVEL` in *compose.yaml* to `verbose`.

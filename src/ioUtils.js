@@ -19,24 +19,24 @@ const outDir = './out';
 const recentPostsFile = 'recent_posts.json';
 const topicsToBeMarkedFile = 'topics_to_be_marked.json';
 
-function readJSONFile(filePath){
-  let data = fs.readFileSync(filePath);
+function readJSONFile(filePath) {
+  const data = fs.readFileSync(filePath);
   return JSON.parse(data.toString());
 }
 
-function getConfig(){
+function getConfig() {
   return fs.existsSync(dockerConfigPath)
     ? readJSONFile(dockerConfigPath)
     : readJSONFile(defaultConfigPath);
 }
 
-function getThmmyCredentials(){
+function getThmmyCredentials() {
   return fs.existsSync(dockerSecretThmmyCredentialsPath)
     ? readJSONFile(dockerSecretThmmyCredentialsPath)
     : readJSONFile(defaultThmmyCredentialsPath);
 }
 
-function getServiceAccountKey(){
+function getServiceAccountKey() {
   return fs.existsSync(dockerSecretServiceAccountKeyPath)
     ? readJSONFile(dockerSecretServiceAccountKeyPath)
     : readJSONFile(defaultServiceAccountKeyPath);
@@ -105,4 +105,13 @@ function getTopicsToBeMarked() {
   return [];
 }
 
-export { readJSONFile, getConfig, getThmmyCredentials, getServiceAccountKey, writePostsToFile, writeTopicsToBeMarkedToFile, clearBackedUpTopicsToBeMarked, getTopicsToBeMarked };
+export {
+  readJSONFile,
+  getConfig,
+  getThmmyCredentials,
+  getServiceAccountKey,
+  writePostsToFile,
+  writeTopicsToBeMarkedToFile,
+  clearBackedUpTopicsToBeMarked,
+  getTopicsToBeMarked
+};

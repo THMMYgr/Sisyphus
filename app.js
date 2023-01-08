@@ -1,10 +1,11 @@
 import { performance } from 'perf_hooks';
-import { setTimeout as setTimeoutPromise} from 'node:timers/promises';
+import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
 import { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } from 'thmmy';
+import isReachable from 'is-reachable';
 
 import * as firebase from './src/firebase.js';
 import logger from './src/logger.js';
-import { hash, stringifyJSONValues, isThmmyReachable } from './src/utils.js';
+import { hash, stringifyJSONValues } from './src/utils.js';
 
 import {
   readJSONFile,
@@ -35,12 +36,16 @@ const log = logger.child({ tag: 'App' });
 const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
 const reachableCheckCooldown = 2000;
 
-let nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
+let startUpTimestamp, latestSuccessfulIterationTimestamp,
+  nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
 
 async function init() {
   try {
+    startUpTimestamp = +new Date();
     log.info(`Sisyphus v${version} started in ${mode} mode!`);
+    await thmmyToBeReachable();
     await firebase.init();
+    firebase.saveStartupDateTime(startUpTimestamp);
     log.info('Logging in to thmmy.gr...');
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
     log.info('Login successful!');
@@ -74,19 +79,14 @@ async function init() {
 async function main() {
   try {
     await refreshSessionDataIfNeeded();
-    await fetch();
+    await fetchUnreadPosts();
   } catch (error) {
     log.error(`${error}`);
     try {
-      if (!await isThmmyReachable()) {
-        log.error('Lost connection to thmmy.gr. Waiting to be restored...');
-        while (!await isThmmyReachable())
-          await setTimeoutPromise(reachableCheckCooldown);
-        log.info('Connection to thmmy.gr is restored!');
-      }
+      await thmmyToBeReachable();
       if (!await refreshSessionDataIfNeeded() && error.code && error.code === 'EINVALIDSESC') {
         sesc = await getSesc(cookieJar); // Refresh sesc
-        log.error('sesc was refreshed.');
+        log.info('Successfully refreshed sesc.');
       }
       await markBackedUpTopicsAsUnread();
     } catch (error) {
@@ -99,8 +99,8 @@ async function main() {
   }
 }
 
-function statusUpdater(){
-  firebase.saveStatusToFirestore(nIterations);
+function statusUpdater() {
+  firebase.saveStatusToFirestore(nIterations, latestSuccessfulIterationTimestamp);
   setTimeout(statusUpdater, statusUpdateInterval);
 }
 
@@ -157,13 +157,14 @@ async function pushToFirebase(newPosts) {
   }
 }
 
-async function fetch() {
+async function fetchUnreadPosts() {
   nIterations++;
   log.verbose(`Current iteration: ${nIterations}`);
   const tStart = performance.now();
   let posts = await getUnreadPosts(cookieJar, {
     boardInfo: true, unreadLimit: recentPostsLimit
   });
+
   if (extraBoards.length > 0) {
     const extraPosts = await getUnreadPosts(cookieJar, {
       boardInfo: true, unreadLimit: recentPostsLimit, boards: extraBoards
@@ -182,8 +183,24 @@ async function fetch() {
     } else log.verbose('No new posts.');
   } else log.warn('Received malformed posts.');
 
+  latestSuccessfulIterationTimestamp = +new Date();
+
   const iterationTime = ((performance.now() - tStart) / 1000).toFixed(3);
   log.verbose(`Iteration finished in ${iterationTime} seconds.`);
+}
+
+async function isThmmyReachable() {
+  return isReachable('thmmy.gr').then(reachable => reachable);
+}
+
+async function thmmyToBeReachable() {
+  if (!await isThmmyReachable()) {
+    log.error('No connection to thmmy.gr!');
+    log.info('Waiting to be restored...');
+    while (!await isThmmyReachable())
+      await setTimeoutPromise(reachableCheckCooldown);
+    log.info('Connection to thmmy.gr is restored!');
+  }
 }
 
 async function refreshSessionDataIfNeeded() {

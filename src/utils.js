@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import isReachable from 'is-reachable';
 
 function hash(string) {
   return crypto.createHash('md5').update(string).digest('hex').substring(0, 12);
@@ -13,8 +12,4 @@ function stringifyJSONValues(json) {
   return json;
 }
 
-async function isThmmyReachable() {
-  return isReachable('thmmy.gr').then(reachable => reachable);
-}
-
-export { hash, stringifyJSONValues, isThmmyReachable };
+export { hash, stringifyJSONValues };
