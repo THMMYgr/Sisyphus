@@ -72,7 +72,7 @@ async function init() {
     if (!error.code)
       error.code = 'EOTHER';
     log.error(`${error} (${error.code})`);
-    process.exit(1);
+    process.exit(2);
   }
 }
 
@@ -91,7 +91,7 @@ async function main() {
       await markBackedUpTopicsAsUnread();
     } catch (error) {
       log.error(`${error}`);
-      process.exit(2);
+      process.exit(3);
     }
   } finally {
     log.verbose(`Cooling down for ${loopCooldown / 1000}s...`);
@@ -112,7 +112,8 @@ function mergePosts(posts1, posts2) {
 
 function savePosts(posts) {
   firebase.savePosts(posts);
-  if (savePostsToFile) writePostsToFile(posts);
+  if (savePostsToFile)
+    writePostsToFile(posts);
 }
 
 // For FCM messages (push notifications)
@@ -130,12 +131,10 @@ async function pushToFirebase(newPosts) {
 
     const newBoardPosts = [];
     for (let i = 0; i < newPosts.length; i++) {
-      const boards = await getTopicBoards(newPosts[i].topicId, {
-        cookieJar
-      });
-      await markTopicAsUnread(newPosts[i].topicId, cookieJar, {
-        sesc
-      }); // The line above will mark the topic as read
+      // Unfortunately, this will also mark the topic as read
+      const boards = await getTopicBoards(newPosts[i].topicId, { cookieJar });
+      // We mark the topic as unread again
+      await markTopicAsUnread(newPosts[i].topicId, cookieJar, { sesc });
       boards.forEach(board => {
         let newBoardPost = JSON.parse(JSON.stringify(newPosts[i])); // Deep cloning
         newBoardPost = Object.assign(newBoardPost, board);
@@ -173,15 +172,21 @@ async function fetchUnreadPosts() {
   }
 
   if (Array.isArray(posts)) {
-    const currentHash = hash(JSON.stringify(posts));
-    if (currentHash !== postsHash) {
-      log.verbose('Got a new hash...');
-      savePosts(posts);
-      const newPosts = posts.filter(post => post.postId > latestPostId);
-      (newPosts.length > 0) ? await pushToFirebase(newPosts) : log.verbose('...but no new posts were found.');
-      postsHash = currentHash; // This belongs here to make Sisyphus retry for this hash in case of error
-    } else log.verbose('No new posts.');
-  } else log.warn('Received malformed posts.');
+    // To avoid deletion of saved posts e.g. in case everything was accidentally marked as read
+    if (posts.length > 0) {
+      const currentHash = hash(JSON.stringify(posts));
+      if (currentHash !== postsHash) {
+        log.verbose('Got a new hash...');
+        savePosts(posts);
+        const newPosts = posts.filter(post => post.postId > latestPostId);
+        (newPosts.length > 0) ? await pushToFirebase(newPosts) : log.verbose('...but no new posts were found.');
+        postsHash = currentHash; // This belongs here to make Sisyphus retry for this hash in case of error
+      } else
+        log.verbose('No new posts.');
+    } else
+      log.warn('Received zero posts!');
+  } else
+    log.warn('Received malformed posts!');
 
   latestSuccessfulIterationTimestamp = +new Date();
 
