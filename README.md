@@ -58,4 +58,4 @@ From *./Sisyphus* run the app with:
 docker compose up --detach
 ```
 
-**Note**: Sisyphus is rather silent in production mode. For verbose log messages, also add `ENV LOG_LEVEL verbose` to the Dockerfile.
+**Note**: Sisyphus is rather silent in production mode. For verbose log messages, change the environment variable `LOG_LEVEL` in *compose.yaml* to `LOG_LEVEL=verbose`.
