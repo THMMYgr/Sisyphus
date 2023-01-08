@@ -20,7 +20,7 @@ import {
 const { version } = readJSONFile('./package.json');
 
 const {
-  statusUpdateInterval,
+  statusUpdateCooldown,
   loopCooldown,
   extraBoards,
   recentPostsLimit,
@@ -45,7 +45,7 @@ async function init() {
     log.info(`Sisyphus v${version} started in ${mode} mode!`);
     await thmmyToBeReachable();
     await firebase.init();
-    firebase.saveStartupDateTime(startUpTimestamp);
+    firebase.saveInitialStatus(version, mode, startUpTimestamp);
     log.info('Logging in to thmmy.gr...');
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
     log.info('Login successful!');
@@ -99,9 +99,9 @@ async function main() {
   }
 }
 
-function statusUpdater() {
-  firebase.saveStatusToFirestore(nIterations, latestSuccessfulIterationTimestamp);
-  setTimeout(statusUpdater, statusUpdateInterval);
+async function statusUpdater() {
+  await firebase.saveStatus(nIterations, latestSuccessfulIterationTimestamp);
+  setTimeout(statusUpdater, statusUpdateCooldown);
 }
 
 function mergePosts(posts1, posts2) {
@@ -111,7 +111,7 @@ function mergePosts(posts1, posts2) {
 }
 
 function savePosts(posts) {
-  firebase.savePostsToFirestore(posts);
+  firebase.savePosts(posts);
   if (savePostsToFile) writePostsToFile(posts);
 }
 
@@ -148,11 +148,11 @@ async function pushToFirebase(newPosts) {
     clearBackedUpTopicsToBeMarked(); // Everything was marked as unread successfully and no longer needed
 
     newPosts.forEach(newPost => {
-      firebase.send(newPost.topicId, newPost);
+      firebase.sendMessage(newPost.topicId, newPost);
     });
 
     newBoardPosts.forEach(newBoardPost => {
-      firebase.send(`b${newBoardPost.boardId}`, newBoardPost);
+      firebase.sendMessage(`b${newBoardPost.boardId}`, newBoardPost);
     });
   }
 }

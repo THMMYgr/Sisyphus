@@ -8,11 +8,13 @@ import { getMessaging } from 'firebase-admin/messaging';
 import moment from 'moment-timezone';
 
 import { getConfig, getServiceAccountKey } from './ioUtils.js';
-import logger, { LOG_LEVEL_VERBOSE, LOG_LEVEL_INFO } from './logger.js';
+import logger from './logger.js';
 
 const {
   firestoreSisyphusCollection,
   firestoreSisyphusStatusDocument,
+  firestoreVersionField,
+  firestoreModeField,
   firestoreStartUpDateTimeField,
   firestoreStatusUpdateDateTimeField,
   firestoreLatestSuccessfulIterationDateTimeField,
@@ -45,7 +47,7 @@ async function init() {
   log.info(`Initialization successful for project ${serviceAccount.project_id}!`);
 }
 
-function send(topic, post, attempt = 1) {
+function sendMessage(topic, post, attempt = 1) {
   let messageInfo;
   if (!topic.includes('b'))
     messageInfo = `TOPIC message (topicId: ${post.topicId}, postId: ${post.postId})`;
@@ -66,26 +68,14 @@ function send(topic, post, attempt = 1) {
       if (attempt < maxAttempts) {
         attempt++;
         log.info(`Retrying to send ${messageInfo} in ${reattemptCooldown / 1000}s...`);
-        setTimeout(send, reattemptCooldown, topic, post, attempt);
+        setTimeout(sendMessage, reattemptCooldown, topic, post, attempt);
       } else log.error(`Maximum number of attempts reached. ${messageInfo} will not be delivered.`);
     });
 }
 
-async function saveFieldToFirestore(docRef, field, data, merge = false, logLevel = LOG_LEVEL_INFO) {
-  try {
-    await docRef.set({ [field]: data }, { merge });
-    const message = `Successfully written to Firestore document (id: ${docRef.id}, field: ${field})!`;
-    log.log(logLevel, message);
-  } catch (error) {
-    log.error(`Error while writing to Firestore document (id: ${docRef.id}, field: ${field}).`);
-    logFirebaseError(error);
-    throw (error);
-  }
-}
-
 let latestPostsToBeSavedTimestamp = 0;
 
-function savePostsToFirestore(posts, attempt = 1, timestamp = +new Date()) {
+function savePosts(posts, attempt = 1, timestamp = +new Date()) {
   if (attempt === 1)
     latestPostsToBeSavedTimestamp = timestamp;
   else if (timestamp < latestPostsToBeSavedTimestamp) {
@@ -97,68 +87,54 @@ function savePostsToFirestore(posts, attempt = 1, timestamp = +new Date()) {
   // (i.e. objects that were created via the 'new' operator).
   posts = posts.map(post => JSON.parse(JSON.stringify(post)));
 
-  saveFieldToFirestore(recentPostsDocRef, firestorePostsField, posts)
+  recentPostsDocRef.set({ [firestorePostsField]: posts })
+    .then(() => {
+      log.info('Successfully written recent posts to Firestore!');
+    })
     .catch(() => {
-      log.error(`Error while writing recent posts document to Firestore (attempt ${attempt}).`);
+      log.error(`Error while writing recent posts to Firestore (attempt ${attempt}).`);
       if (attempt < maxAttempts) {
         attempt++;
         log.info(`Retrying to write document to Firestore in ${reattemptCooldown / 1000}s...`);
-        setTimeout(savePostsToFirestore, reattemptCooldown, posts, attempt, timestamp);
+        setTimeout(savePosts, reattemptCooldown, posts, attempt, timestamp);
       } else
         log.error('Maximum number of attempts reached. Document will not be written to Firestore.');
     });
 }
 
-function saveStartupDateTime(startUpTimestamp) {
-  saveFieldToFirestore(
-    sisyphusStatusDocRef,
-    firestoreStartUpDateTimeField,
-    moment.tz(startUpTimestamp, 'Europe/Athens').format(),
-    true,
-    LOG_LEVEL_VERBOSE
-  ).catch(error => {
-    log.error('Error while writing start up dateTime to Firestore.');
+function saveInitialStatus(version, mode, startUpTimestamp) {
+  sisyphusStatusDocRef.set(
+    {
+      [firestoreVersionField]: version,
+      [firestoreModeField]: mode,
+      [firestoreStartUpDateTimeField]: moment.tz(startUpTimestamp, 'Europe/Athens').format()
+    },
+    { merge: true }
+  ).then(() => {
+    log.verbose('Successfully written initial status fields to Firestore!');
+  }).catch(error => {
+    log.error('Error while writing initial status fields to Firestore.');
     logFirebaseError(error);
   });
 }
 
-function saveStatusToFirestore(nIterations, latestSuccessfulIterationTimestamp) {
-  saveFieldToFirestore(
-    sisyphusStatusDocRef,
-    firestoreStatusUpdateDateTimeField,
-    moment.tz('Europe/Athens').format(),
-    true,
-    LOG_LEVEL_VERBOSE
-  ).catch(error => {
-    log.error('Error while writing status update dateTime to Firestore.');
+async function saveStatus(nIterations, latestSuccessfulIterationTimestamp) {
+  try {
+    const latestSuccessfulIterationDateTime = latestSuccessfulIterationTimestamp
+      ? moment.tz(latestSuccessfulIterationTimestamp, 'Europe/Athens').format()
+      : null;
+    await sisyphusStatusDocRef.set(
+      {
+        [firestoreStatusUpdateDateTimeField]: moment.tz('Europe/Athens').format(),
+        [firestoreNumberOfIterationsField]: nIterations,
+        [firestoreLatestSuccessfulIterationDateTimeField]: latestSuccessfulIterationDateTime
+      },
+      { merge: true }
+    );
+    log.verbose('Successfully written updated status fields to Firestore!');
+  } catch (error) {
+    log.error('Error while writing updated status fields to Firestore.');
     logFirebaseError(error);
-  });
-
-  saveFieldToFirestore(
-    sisyphusStatusDocRef,
-    firestoreNumberOfIterationsField,
-    nIterations,
-    true,
-    LOG_LEVEL_VERBOSE
-  ).catch(error => {
-    log.error('Error while writing number of iterations to Firestore.');
-    logFirebaseError(error);
-  });
-
-  if (latestSuccessfulIterationTimestamp) {
-    saveFieldToFirestore(
-      sisyphusStatusDocRef,
-      firestoreLatestSuccessfulIterationDateTimeField,
-      moment.tz(
-        latestSuccessfulIterationTimestamp,
-        'Europe/Athens'
-      ).format(),
-      true,
-      LOG_LEVEL_VERBOSE
-    ).catch(error => {
-      log.error('Error while writing latest successful iteration dateTime to Firestore.');
-      logFirebaseError(error);
-    });
   }
 }
 
@@ -168,4 +144,4 @@ function logFirebaseError(error) {
     : log.error(`${error}`);
 }
 
-export { init, send, savePostsToFirestore, saveStartupDateTime, saveStatusToFirestore };
+export { init, sendMessage, savePosts, saveInitialStatus, saveStatus };
