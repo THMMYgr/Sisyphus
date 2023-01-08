@@ -1,10 +1,11 @@
 import { performance } from 'perf_hooks';
 import { setTimeout as setTimeoutPromise} from 'node:timers/promises';
 import { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } from 'thmmy';
+import isReachable from 'is-reachable';
 
 import * as firebase from './src/firebase.js';
 import logger from './src/logger.js';
-import { hash, stringifyJSONValues, isThmmyReachable } from './src/utils.js';
+import { hash, stringifyJSONValues } from './src/utils.js';
 
 import {
   readJSONFile,
@@ -42,6 +43,7 @@ async function init() {
   try {
     startUpTimestamp =  +new Date();
     log.info(`Sisyphus v${version} started in ${mode} mode!`);
+    await thmmyToBeReachable();
     await firebase.init();
     firebase.saveStartupDateTime(startUpTimestamp);
     log.info('Logging in to thmmy.gr...');
@@ -81,15 +83,10 @@ async function main() {
   } catch (error) {
     log.error(`${error}`);
     try {
-      if (!await isThmmyReachable()) {
-        log.error('Lost connection to thmmy.gr. Waiting to be restored...');
-        while (!await isThmmyReachable())
-          await setTimeoutPromise(reachableCheckCooldown);
-        log.info('Connection to thmmy.gr is restored!');
-      }
+      await thmmyToBeReachable();
       if (!await refreshSessionDataIfNeeded() && error.code && error.code === 'EINVALIDSESC') {
         sesc = await getSesc(cookieJar); // Refresh sesc
-        log.error('sesc was refreshed.');
+        log.info('Successfully refreshed sesc.');
       }
       await markBackedUpTopicsAsUnread();
     } catch (error) {
@@ -190,6 +187,20 @@ async function fetchUnreadPosts() {
 
   const iterationTime = ((performance.now() - tStart) / 1000).toFixed(3);
   log.verbose(`Iteration finished in ${iterationTime} seconds.`);
+}
+
+async function isThmmyReachable() {
+  return isReachable('thmmy.gr').then(reachable => reachable);
+}
+
+async function thmmyToBeReachable() {
+  if (!await isThmmyReachable()) {
+    log.error('No connection to thmmy.gr!');
+    log.info('Waiting to be restored...');
+    while (!await isThmmyReachable())
+      await setTimeoutPromise(reachableCheckCooldown);
+    log.info('Connection to thmmy.gr is restored!');
+  }
 }
 
 async function refreshSessionDataIfNeeded() {

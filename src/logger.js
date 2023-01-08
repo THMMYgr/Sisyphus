@@ -81,7 +81,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 process.on('unhandledRejection', reason => {
-  throw reason; // Will be handled by winston
+  logger.error(reason);
+  process.exit(1);
 });
 
 export default logger;
