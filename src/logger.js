@@ -5,6 +5,9 @@ import fs from 'fs';
 
 const logDir = 'log';
 
+export const LOG_LEVEL_VERBOSE = 'verbose';
+export const LOG_LEVEL_INFO = 'info';
+
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
 const { combine, printf } = format;
@@ -16,7 +19,7 @@ const appendTimestamp = format((info, opts) => {
   return info;
 });
 
-const logLevel = (process.env.LOG_LEVEL === 'verbose') ? 'verbose' : 'info';
+const logLevel = process.env.LOG_LEVEL || LOG_LEVEL_INFO;
 
 const logger = createLogger({
   level: logLevel,

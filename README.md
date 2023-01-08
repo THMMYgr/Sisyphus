@@ -55,7 +55,7 @@ Navigate inside *./Sisyphus/config* directory, edit the existing files and add a
 
 From *./Sisyphus* run the app with:
 ```bash
-docker compose up
+docker compose up --detach
 ```
 
 **Note**: Sisyphus is rather silent in production mode. For verbose log messages, also add `ENV LOG_LEVEL verbose` to the Dockerfile.

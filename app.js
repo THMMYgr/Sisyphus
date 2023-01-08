@@ -35,12 +35,15 @@ const log = logger.child({ tag: 'App' });
 const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
 const reachableCheckCooldown = 2000;
 
-let nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
+let startUpTimestamp, latestSuccessfulIterationTimestamp,
+  nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
 
 async function init() {
   try {
+    startUpTimestamp =  +new Date();
     log.info(`Sisyphus v${version} started in ${mode} mode!`);
     await firebase.init();
+    firebase.saveStartupDateTime(startUpTimestamp);
     log.info('Logging in to thmmy.gr...');
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
     log.info('Login successful!');
@@ -74,7 +77,7 @@ async function init() {
 async function main() {
   try {
     await refreshSessionDataIfNeeded();
-    await fetch();
+    await fetchUnreadPosts();
   } catch (error) {
     log.error(`${error}`);
     try {
@@ -100,7 +103,7 @@ async function main() {
 }
 
 function statusUpdater(){
-  firebase.saveStatusToFirestore(nIterations);
+  firebase.saveStatusToFirestore(nIterations, latestSuccessfulIterationTimestamp);
   setTimeout(statusUpdater, statusUpdateInterval);
 }
 
@@ -157,13 +160,14 @@ async function pushToFirebase(newPosts) {
   }
 }
 
-async function fetch() {
+async function fetchUnreadPosts() {
   nIterations++;
   log.verbose(`Current iteration: ${nIterations}`);
   const tStart = performance.now();
   let posts = await getUnreadPosts(cookieJar, {
     boardInfo: true, unreadLimit: recentPostsLimit
   });
+
   if (extraBoards.length > 0) {
     const extraPosts = await getUnreadPosts(cookieJar, {
       boardInfo: true, unreadLimit: recentPostsLimit, boards: extraBoards
@@ -181,6 +185,8 @@ async function fetch() {
       postsHash = currentHash; // This belongs here to make Sisyphus retry for this hash in case of error
     } else log.verbose('No new posts.');
   } else log.warn('Received malformed posts.');
+
+  latestSuccessfulIterationTimestamp = +new Date();
 
   const iterationTime = ((performance.now() - tStart) / 1000).toFixed(3);
   log.verbose(`Iteration finished in ${iterationTime} seconds.`);
