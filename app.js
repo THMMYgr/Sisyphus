@@ -1,6 +1,15 @@
 import { performance } from 'perf_hooks';
 import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
-import { getUnreadPosts, getTopicBoards, login, getSesc, markTopicAsUnread } from 'thmmy';
+import {
+  getUnreadPosts,
+  getTopicBoards,
+  login,
+  getSesc,
+  markTopicAsUnread,
+  setErrorCode,
+  EINVALIDSESC
+} from 'thmmy';
+import isOnline from 'is-online';
 import isReachable from 'is-reachable';
 
 import * as firebase from './src/firebase.js';
@@ -21,7 +30,7 @@ const { version } = readJSONFile('./package.json');
 
 const {
   statusUpdateCooldown,
-  loopCooldown,
+  pollingCooldown,
   extraBoards,
   recentPostsLimit,
   savePostsToFile
@@ -50,27 +59,10 @@ async function init() {
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
     log.info('Login successful!');
     await markBackedUpTopicsAsUnread(); // In case of an unexpected restart
-    log.verbose('Fetching initial posts...');
-    let posts = await getUnreadPosts(cookieJar, {
-      boardInfo: true, unreadLimit: recentPostsLimit
-    });
-    if (extraBoards.length > 0) {
-      const extraPosts = await getUnreadPosts(cookieJar, {
-        boardInfo: true, unreadLimit: recentPostsLimit, boards: extraBoards
-      });
-      posts = mergePosts(posts, extraPosts);
-    }
-    log.verbose('Initial posts were retrieved successfully and will be saved to Firestore!');
-    savePosts(posts); // Save initial posts
-    postsHash = hash(JSON.stringify(posts));
-    latestPostId = posts.length > 0 ? posts[0].postId : -1;
-
-    setImmediate(statusUpdater);
-
+    setTimeout(statusUpdater, statusUpdateCooldown);
     log.verbose('Initialization successful!');
   } catch (error) {
-    if (!error.code)
-      error.code = 'EOTHER';
+    setErrorCode(error);
     log.error(`${error} (${error.code})`);
     process.exit(2);
   }
@@ -78,13 +70,19 @@ async function init() {
 
 async function main() {
   try {
+    nIterations++;
+    log.verbose(`Current iteration: ${nIterations}`);
     await refreshSessionDataIfNeeded();
-    await fetchUnreadPosts();
+    const tStart = performance.now();
+    await retrievePosts();
+    latestSuccessfulIterationTimestamp = +new Date();
+    const iterationTime = ((performance.now() - tStart) / 1000).toFixed(3);
+    log.verbose(`Iteration finished in ${iterationTime} seconds.`);
   } catch (error) {
     log.error(`${error}`);
     try {
       await thmmyToBeReachable();
-      if (!await refreshSessionDataIfNeeded() && error.code && error.code === 'EINVALIDSESC') {
+      if (!await refreshSessionDataIfNeeded() && error.code && error.code === EINVALIDSESC) {
         sesc = await getSesc(cookieJar); // Refresh sesc
         log.info('Successfully refreshed sesc.');
       }
@@ -94,20 +92,48 @@ async function main() {
       process.exit(3);
     }
   } finally {
-    log.verbose(`Cooling down for ${loopCooldown / 1000}s...`);
-    setTimeout(main, loopCooldown);
+    log.verbose(`Cooling down for ${pollingCooldown / 1000}s...`);
+    setTimeout(main, pollingCooldown);
   }
 }
 
-async function statusUpdater() {
-  await firebase.saveStatus(nIterations, latestSuccessfulIterationTimestamp);
-  setTimeout(statusUpdater, statusUpdateCooldown);
-}
+async function retrievePosts() {
+  let posts = await getUnreadPosts(cookieJar, {
+    boardInfo: true, unreadLimit: recentPostsLimit
+  });
+  if (extraBoards.length > 0) {
+    const extraPosts = await getUnreadPosts(cookieJar, {
+      boardInfo: true, unreadLimit: recentPostsLimit, boards: extraBoards
+    });
+    posts = mergePosts(posts, extraPosts);
+  }
 
-function mergePosts(posts1, posts2) {
-  const posts = posts1.concat(posts2);
-  posts.sort((a, b) => b.postId - a.postId);
-  return (recentPostsLimit < posts.length) ? posts.slice(0, recentPostsLimit) : posts;
+  if (Array.isArray(posts)) {
+    log.verbose(`Successfully retrieved ${posts.length} posts!`);
+    if (nIterations === 0) {
+      savePosts(posts);
+      postsHash = hash(JSON.stringify(posts));
+      latestPostId = posts.length > 0 ? posts[0].postId : -1;
+    } else {
+      const currentHash = hash(JSON.stringify(posts));
+      if (currentHash !== postsHash) {
+        log.verbose('Got a new hash...');
+        savePosts(posts);
+        const newPosts = posts.filter(post => post.postId > latestPostId);
+        if (newPosts.length > 0) {
+          newPosts.forEach(post => {
+            if (post.postId > latestPostId)
+              latestPostId = post.postId;
+          });
+          await pushNewPostsToFirebase(newPosts);
+        } else
+          log.verbose('...but no new posts were found.');
+        postsHash = currentHash; // This belongs here to make Sisyphus retry for this hash in case of error
+      } else
+        log.verbose('No new posts.');
+    }
+  } else
+    log.warn('Received malformed posts!');
 }
 
 function savePosts(posts) {
@@ -117,11 +143,10 @@ function savePosts(posts) {
 }
 
 // For FCM messages (push notifications)
-async function pushToFirebase(newPosts) {
+async function pushNewPostsToFirebase(newPosts) {
   if (newPosts.length > 0) {
     log.verbose(`Found ${newPosts.length} new post(s)!`);
     newPosts.forEach(post => {
-      if (post.postId > latestPostId) latestPostId = post.postId;
       stringifyJSONValues(post);
     });
 
@@ -131,7 +156,7 @@ async function pushToFirebase(newPosts) {
 
     const newBoardPosts = [];
     for (let i = 0; i < newPosts.length; i++) {
-      // Unfortunately, this will also mark the topic as read
+      // We need all the topic's boards, but, unfortunately, this will also mark the topic as read
       const boards = await getTopicBoards(newPosts[i].topicId, { cookieJar });
       // We mark the topic as unread again
       await markTopicAsUnread(newPosts[i].topicId, cookieJar, { sesc });
@@ -143,8 +168,8 @@ async function pushToFirebase(newPosts) {
         newBoardPosts.push(newBoardPost);
       });
     }
-
-    clearBackedUpTopicsToBeMarked(); // Everything was marked as unread successfully and no longer needed
+    // Everything was marked as unread successfully and no longer needed
+    clearBackedUpTopicsToBeMarked();
 
     newPosts.forEach(newPost => {
       firebase.sendMessage(newPost.topicId, newPost);
@@ -153,58 +178,6 @@ async function pushToFirebase(newPosts) {
     newBoardPosts.forEach(newBoardPost => {
       firebase.sendMessage(`b${newBoardPost.boardId}`, newBoardPost);
     });
-  }
-}
-
-async function fetchUnreadPosts() {
-  nIterations++;
-  log.verbose(`Current iteration: ${nIterations}`);
-  const tStart = performance.now();
-  let posts = await getUnreadPosts(cookieJar, {
-    boardInfo: true, unreadLimit: recentPostsLimit
-  });
-
-  if (extraBoards.length > 0) {
-    const extraPosts = await getUnreadPosts(cookieJar, {
-      boardInfo: true, unreadLimit: recentPostsLimit, boards: extraBoards
-    });
-    posts = mergePosts(posts, extraPosts);
-  }
-
-  if (Array.isArray(posts)) {
-    // To avoid deletion of saved posts e.g. in case everything was accidentally marked as read
-    if (posts.length > 0) {
-      const currentHash = hash(JSON.stringify(posts));
-      if (currentHash !== postsHash) {
-        log.verbose('Got a new hash...');
-        savePosts(posts);
-        const newPosts = posts.filter(post => post.postId > latestPostId);
-        (newPosts.length > 0) ? await pushToFirebase(newPosts) : log.verbose('...but no new posts were found.');
-        postsHash = currentHash; // This belongs here to make Sisyphus retry for this hash in case of error
-      } else
-        log.verbose('No new posts.');
-    } else
-      log.warn('Received zero posts!');
-  } else
-    log.warn('Received malformed posts!');
-
-  latestSuccessfulIterationTimestamp = +new Date();
-
-  const iterationTime = ((performance.now() - tStart) / 1000).toFixed(3);
-  log.verbose(`Iteration finished in ${iterationTime} seconds.`);
-}
-
-async function isThmmyReachable() {
-  return isReachable('thmmy.gr').then(reachable => reachable);
-}
-
-async function thmmyToBeReachable() {
-  if (!await isThmmyReachable()) {
-    log.error('No connection to thmmy.gr!');
-    log.info('Waiting to be restored...');
-    while (!await isThmmyReachable())
-      await setTimeoutPromise(reachableCheckCooldown);
-    log.info('Connection to thmmy.gr is restored!');
   }
 }
 
@@ -247,6 +220,38 @@ async function markBackedUpTopicsAsUnread() {
         });
     } else resolve();
   }));
+}
+
+// ---------- STATUS UPDATER ----------
+async function statusUpdater() {
+  if (!await isOnline()) {
+    log.warn('No connection to the Internet! Waiting to be restored...');
+    while (!await isOnline())
+      await setTimeoutPromise(reachableCheckCooldown);
+  }
+  await firebase.saveStatus(nIterations, latestSuccessfulIterationTimestamp);
+  setTimeout(statusUpdater, statusUpdateCooldown);
+}
+
+// ---------- CONNECTIVITY UTILS ----------
+async function isThmmyReachable() {
+  return isReachable('thmmy.gr').then(reachable => reachable);
+}
+
+async function thmmyToBeReachable() {
+  if (!await isThmmyReachable()) {
+    log.error('No connection to thmmy.gr! Waiting to be restored...');
+    while (!await isThmmyReachable())
+      await setTimeoutPromise(reachableCheckCooldown);
+    log.info('Connection to thmmy.gr is restored!');
+  }
+}
+
+// ---------- MISC ----------
+function mergePosts(posts1, posts2) {
+  const posts = posts1.concat(posts2);
+  posts.sort((a, b) => b.postId - a.postId);
+  return (recentPostsLimit < posts.length) ? posts.slice(0, recentPostsLimit) : posts;
 }
 
 await init();
