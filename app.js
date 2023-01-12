@@ -55,7 +55,7 @@ async function init() {
     await thmmyToBeReachable();
     await firebase.init();
     firebase.saveInitialStatus(version, mode, startUpTimestamp);
-    log.info('Logging in to thmmy.gr...');
+    log.info(`Logging in to thmmy.gr as ${thmmyUsername}...`);
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
     log.info('Login successful!');
     await markBackedUpTopicsAsUnread(); // In case of an unexpected restart
@@ -110,7 +110,7 @@ async function retrievePosts() {
 
   if (Array.isArray(posts)) {
     log.verbose(`Successfully retrieved ${posts.length} posts!`);
-    if (nIterations === 0) {
+    if (nIterations === 1) {
       savePosts(posts);
       postsHash = hash(JSON.stringify(posts));
       latestPostId = posts.length > 0 ? posts[0].postId : -1;
@@ -133,10 +133,13 @@ async function retrievePosts() {
         log.verbose('No new posts.');
     }
   } else
-    log.warn('Received malformed posts!');
+    log.error('Received malformed posts!');
 }
 
 function savePosts(posts) {
+  // Log this case, as it should probably be investigated
+  if (posts.length === 0)
+    log.warn('An empty array of posts will be saved!');
   firebase.savePosts(posts);
   if (savePostsToFile)
     writePostsToFile(posts);
@@ -225,7 +228,7 @@ async function markBackedUpTopicsAsUnread() {
 // ---------- STATUS UPDATER ----------
 async function statusUpdater() {
   if (!await isOnline()) {
-    log.warn('No connection to the Internet! Waiting to be restored...');
+    log.error('No connection to the Internet! Waiting to be restored...');
     while (!await isOnline())
       await setTimeoutPromise(reachableCheckCooldown);
   }
@@ -234,6 +237,7 @@ async function statusUpdater() {
 }
 
 // ---------- CONNECTIVITY UTILS ----------
+// TODO: move this to thmmy package
 async function isThmmyReachable() {
   return isReachable('thmmy.gr').then(reachable => reachable);
 }

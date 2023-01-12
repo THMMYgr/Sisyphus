@@ -70,9 +70,11 @@ function savePosts(posts) {
   // (i.e. objects that were created via the 'new' operator).
   posts = posts.map(post => JSON.parse(JSON.stringify(post)));
 
+  const latestPostId = posts.length > 0 ? posts[0].postId : -1;
+
   recentPostsDocRef.set({ [firestorePostsField]: posts })
     .then(() => {
-      log.info('Successfully written recent posts to Firestore!');
+      log.info(`Successfully written ${posts.length} recent posts to Firestore (latest postID: ${latestPostId})!`);
     })
     .catch(error => {
       logFirebaseError(error, 'Error while writing recent posts to Firestore');
