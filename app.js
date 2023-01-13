@@ -6,11 +6,12 @@ import {
   login,
   getSesc,
   markTopicAsUnread,
+  isThmmyCookieExistent,
+  isForumReachable,
   setErrorCode,
   EINVALIDSESC
 } from 'thmmy';
 import isOnline from 'is-online';
-import isReachable from 'is-reachable';
 
 import * as firebase from './src/firebase.js';
 import logger from './src/logger.js';
@@ -184,14 +185,7 @@ async function pushNewPostsToFirebase(newPosts) {
   }
 }
 
-async function refreshSessionDataIfNeeded() {
-  if (!cookieJar.getCookieStringSync('https://www.thmmy.gr').includes('THMMYgrC00ki3')) {
-    ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword)); // Refresh cookieJar & sesc
-    log.info('CookieJar and sesc were refreshed.');
-    return true;
-  }
-  return false;
-}
+// ---------- BACKED UP TOPICS ----------
 
 // This will be an array to be stored as a backup in case something goes wrong
 function backupTopicsToBeMarked(newPosts) {
@@ -236,16 +230,20 @@ async function statusUpdater() {
   setTimeout(statusUpdater, statusUpdateCooldown);
 }
 
-// ---------- CONNECTIVITY UTILS ----------
-// TODO: move this to thmmy package
-async function isThmmyReachable() {
-  return isReachable('thmmy.gr').then(reachable => reachable);
+// ---------- THMMY UTILS ----------
+async function refreshSessionDataIfNeeded() {
+  if (!isThmmyCookieExistent(cookieJar)) {
+    ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword)); // Refresh cookieJar & sesc
+    log.info('CookieJar and sesc were refreshed.');
+    return true;
+  }
+  return false;
 }
 
 async function thmmyToBeReachable() {
-  if (!await isThmmyReachable()) {
+  if (!await isForumReachable()) {
     log.error('No connection to thmmy.gr! Waiting to be restored...');
-    while (!await isThmmyReachable())
+    while (!await isForumReachable())
       await setTimeoutPromise(reachableCheckCooldown);
     log.info('Connection to thmmy.gr is restored!');
   }
