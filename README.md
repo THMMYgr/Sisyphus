@@ -1,5 +1,7 @@
 # Sisyphus
-![Version](https://img.shields.io/github/package-json/v/ThmmyNoLife/Sisyphus/master.svg)
+![Version](https://img.shields.io/github/package-json/v/ThmmyNoLife/Sisyphus/master.svg?color=red)
+[![API](https://img.shields.io/badge/API-Recent_posts-orange.svg?style==flat)](https://firestore.googleapis.com/v1/projects/mthmmy-release-3aef0/databases/(default)/documents/thmmy/recent_posts/)
+[![API](https://img.shields.io/badge/API-Status-blue.svg?style==flat)](https://firestore.googleapis.com/v1/projects/mthmmy-release-3aef0/databases/(default)/documents/sisyphus/status/)
 ![Last Commit](https://img.shields.io/github/last-commit/ThmmyNoLife/Sisyphus/develop.svg)
 
 Backend service that fetches data from [thmmy.gr](https://www.thmmy.gr/) and provides them to [mTHMMY](https://github.com/ThmmyNoLife/mTHMMY) through [Firebase](https://firebase.google.com/).
@@ -22,8 +24,10 @@ service cloud.firestore {
 }
 ```
 
-This will also expose a REST API endpoint at https://firestore.googleapis.com/v1/projects/FIREBASE_PROJECT_ID/databases/(default)/documents/thmmy/recent_posts/
+This will also expose a REST API endpoint at https://firestore.googleapis.com/v1/projects/FIREBASE_PROJECT_ID/databases/(default)/documents/thmmy/recent_posts/,
 that will publicly provide the retrieved recent posts.
+
+Furthermore, another endpoint at https://firestore.googleapis.com/v1/projects/FIREBASE_PROJECT_ID/databases/(default)/documents/sisyphus/status will provide useful information about the app's status.
 
 ### Development
 

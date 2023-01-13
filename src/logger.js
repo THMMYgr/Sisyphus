@@ -47,39 +47,19 @@ const logger = createLogger({
       maxFiles: '30d'
     })
   ],
-  handleExceptions: true,
-  exitOnError: false
+  handleExceptions: true
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new transports.Console({
-    level: 'debug',
-    format: combine(
-      format.colorize(),
-      appendTimestamp({
-        tz: 'Europe/Athens'
-      }),
-      logFormat
-    ),
-    handleExceptions: true
-  }));
-} else {
-  logger.add(new transports.Console({
-    level: logLevel,
-    format: combine(
-      format.colorize(),
-      appendTimestamp({
-        tz: 'Europe/Athens'
-      }),
-      logFormat
-    ),
-    handleExceptions: true
-  }));
-}
-
-process.on('unhandledRejection', reason => {
-  logger.error(reason);
-  process.exit(1);
-});
+logger.add(new transports.Console({
+  level: process.env.NODE_ENV === 'production' ? logLevel : 'debug',
+  format: combine(
+    format.colorize(),
+    appendTimestamp({
+      tz: 'Europe/Athens'
+    }),
+    logFormat
+  ),
+  handleExceptions: true
+}));
 
 export default logger;

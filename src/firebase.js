@@ -27,8 +27,6 @@ const {
 const serviceAccount = getServiceAccountKey();
 
 const log = logger.child({ tag: 'Firebase' });
-const reattemptCooldown = 2000;
-const maxAttempts = 100;
 
 let sisyphusStatusDocRef, recentPostsDocRef; // Firestore document references
 let messaging;
@@ -47,7 +45,7 @@ async function init() {
   log.info(`Initialization successful for project ${serviceAccount.project_id}!`);
 }
 
-function sendMessage(topic, post, attempt = 1) {
+function sendMessage(topic, post) {
   let messageInfo;
   if (!topic.includes('b'))
     messageInfo = `TOPIC message (topicId: ${post.topicId}, postId: ${post.postId})`;
@@ -63,42 +61,23 @@ function sendMessage(topic, post, attempt = 1) {
       log.info(`Successfully sent ${messageInfo} with messageId: ${response.messageId}`);
     })
     .catch(error => {
-      log.error(`Error sending ${messageInfo} (attempt ${attempt})`);
-      logFirebaseError(error);
-      if (attempt < maxAttempts) {
-        attempt++;
-        log.info(`Retrying to send ${messageInfo} in ${reattemptCooldown / 1000}s...`);
-        setTimeout(sendMessage, reattemptCooldown, topic, post, attempt);
-      } else log.error(`Maximum number of attempts reached. ${messageInfo} will not be delivered.`);
+      logFirebaseError(error, `Error sending ${messageInfo}`);
     });
 }
 
-let latestPostsToBeSavedTimestamp = 0;
-
-function savePosts(posts, attempt = 1, timestamp = +new Date()) {
-  if (attempt === 1)
-    latestPostsToBeSavedTimestamp = timestamp;
-  else if (timestamp < latestPostsToBeSavedTimestamp) {
-    log.info('Document will not be written to Firestore in favor of a newer one.');
-    return;
-  }
-
+function savePosts(posts) {
   // Because Firestore doesn't support JavaScript objects with custom prototypes
   // (i.e. objects that were created via the 'new' operator).
   posts = posts.map(post => JSON.parse(JSON.stringify(post)));
 
+  const latestPostId = posts.length > 0 ? posts[0].postId : -1;
+
   recentPostsDocRef.set({ [firestorePostsField]: posts })
     .then(() => {
-      log.info('Successfully written recent posts to Firestore!');
+      log.info(`Successfully written ${posts.length} recent posts to Firestore (latest postID: ${latestPostId})!`);
     })
-    .catch(() => {
-      log.error(`Error while writing recent posts to Firestore (attempt ${attempt}).`);
-      if (attempt < maxAttempts) {
-        attempt++;
-        log.info(`Retrying to write document to Firestore in ${reattemptCooldown / 1000}s...`);
-        setTimeout(savePosts, reattemptCooldown, posts, attempt, timestamp);
-      } else
-        log.error('Maximum number of attempts reached. Document will not be written to Firestore.');
+    .catch(error => {
+      logFirebaseError(error, 'Error while writing recent posts to Firestore');
     });
 }
 
@@ -108,13 +87,11 @@ function saveInitialStatus(version, mode, startUpTimestamp) {
       [firestoreVersionField]: version,
       [firestoreModeField]: mode,
       [firestoreStartUpDateTimeField]: moment.tz(startUpTimestamp, 'Europe/Athens').format()
-    },
-    { merge: true }
+    }
   ).then(() => {
     log.verbose('Successfully written initial status fields to Firestore!');
   }).catch(error => {
-    log.error('Error while writing initial status fields to Firestore.');
-    logFirebaseError(error);
+    logFirebaseError(error, 'Error while writing initial status fields to Firestore.');
   });
 }
 
@@ -133,12 +110,12 @@ async function saveStatus(nIterations, latestSuccessfulIterationTimestamp) {
     );
     log.verbose('Successfully written updated status fields to Firestore!');
   } catch (error) {
-    log.error('Error while writing updated status fields to Firestore.');
-    logFirebaseError(error);
+    logFirebaseError(error, 'Error while writing updated status fields to Firestore.');
   }
 }
 
-function logFirebaseError(error) {
+function logFirebaseError(error, message) {
+  log.error(message);
   (error.errorInfo && error.errorInfo.code)
     ? log.error(`${error.errorInfo.code}`)
     : log.error(`${error}`);

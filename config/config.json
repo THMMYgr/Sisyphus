@@ -11,7 +11,7 @@
     "firestoreRecentPostsDocument": "recent_posts",
     "firestorePostsField": "posts",
     "statusUpdateCooldown":  60000,
-    "loopCooldown": 3000,
+    "pollingCooldown": 3000,
     "recentPostsLimit": 60,
     "extraBoards": [241, 397, 438, 370, 221, 532 , 238],
     "savePostsToFile": true
