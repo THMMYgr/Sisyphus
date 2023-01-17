@@ -1,6 +1,6 @@
 {
   "name": "sisyphus",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Eternally condemned to provide data from thmmy.gr",
   "type": "module",
   "private": true,
