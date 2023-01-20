@@ -1,0 +1,15 @@
+{
+    "firestoreSisyphusCollection": "sisyphus",
+    "firestoreSisyphusStatusDocument": "status",
+    "firestoreVersionField": "version",
+    "firestoreModeField": "mode",
+    "firestoreStartUpDateTimeField": "start_up_date_time",
+    "firestoreStatusUpdateDateTimeField": "status_update_date_time",
+    "firestoreLatestSuccessfulIterationDateTimeField": "latest_successful_iteration_date_time",
+    "firestoreNumberOfIterationsField": "number_of_iterations",
+    "firestoreNumberOfTopicNotificationsField": "number_of_topic_notifications",
+    "firestoreNumberOfBoardNotificationsField": "number_of_board_notifications",
+    "firestoreThmmyCollection": "thmmy",
+    "firestoreRecentPostsDocument": "recent_posts",
+    "firestorePostsField": "posts"
+}

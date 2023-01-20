@@ -8,10 +8,12 @@ const log = logger.child({
 });
 
 const defaultConfigPath = './config/config.json';
+const defaultFirebaseConfigPath = './config/firebaseConfig.json';
 const defaultThmmyCredentialsPath = './config/thmmyCredentials.json';
 const defaultServiceAccountKeyPath = './config/serviceAccountKey.json';
 
 const dockerConfigPath = '/sisyphus-config';
+const dockerFirebaseConfigPath = '/sisyphus-firebase-config';
 const dockerSecretThmmyCredentialsPath = '/run/secrets/sisyphus-thmmy-credentials';
 const dockerSecretServiceAccountKeyPath = '/run/secrets/sisyphus-service-account-key';
 
@@ -28,6 +30,12 @@ function getConfig() {
   return fs.existsSync(dockerConfigPath)
     ? readJSONFile(dockerConfigPath)
     : readJSONFile(defaultConfigPath);
+}
+
+function getFirebaseConfig() {
+  return fs.existsSync(dockerFirebaseConfigPath)
+    ? readJSONFile(dockerFirebaseConfigPath)
+    : readJSONFile(defaultFirebaseConfigPath);
 }
 
 function getThmmyCredentials() {
@@ -108,6 +116,7 @@ function getTopicsToBeMarked() {
 export {
   readJSONFile,
   getConfig,
+  getFirebaseConfig,
   getThmmyCredentials,
   getServiceAccountKey,
   writePostsToFile,

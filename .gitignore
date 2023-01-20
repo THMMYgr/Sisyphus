@@ -6,8 +6,9 @@
 /log
 *.log
 
-# Configuration
-/config
+# Sensitive configuration
+/config/thmmyCredentials.json
+/config/serviceAccountKey.json
 
 # Jetbrains
 .idea

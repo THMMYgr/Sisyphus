@@ -7,7 +7,7 @@ import { getMessaging } from 'firebase-admin/messaging';
 
 import moment from 'moment-timezone';
 
-import { getConfig, getServiceAccountKey } from './ioUtils.js';
+import { getFirebaseConfig, getServiceAccountKey } from './ioUtils.js';
 import logger from './logger.js';
 
 const {
@@ -24,7 +24,7 @@ const {
   firestoreThmmyCollection,
   firestoreRecentPostsDocument,
   firestorePostsField
-} = getConfig();
+} = getFirebaseConfig();
 
 const serviceAccount = getServiceAccountKey();
 

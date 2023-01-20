@@ -10,6 +10,7 @@ services:
       - LOG_LEVEL=info
     configs:
       - sisyphus-config
+      - sisyphus-firebase-config
     secrets:
        - sisyphus-thmmy-credentials
        - sisyphus-service-account-key
@@ -22,6 +23,8 @@ services:
 configs:
   sisyphus-config:
     file: ./config/config.json
+  sisyphus-firebase-config:
+    file: ./config/firebaseConfig.json
 
 secrets:
    sisyphus-thmmy-credentials:
