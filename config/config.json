@@ -1,8 +1,9 @@
 {
-    "firestoreStatusEnabled": true,
+    "saveStatusToFirestore": true,
+    "savePostsToFirestore": true,
+    "savePostsToFile": true,
     "statusUpdateCooldown":  60000,
     "pollingCooldown": 3000,
     "recentPostsLimit": 60,
-    "extraBoards": [241, 397, 438, 370, 221, 532 , 238],
-    "savePostsToFile": true
+    "extraBoards": [241, 397, 438, 370, 221, 532 , 238]
 }

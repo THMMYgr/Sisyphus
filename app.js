@@ -30,12 +30,13 @@ import {
 const { version } = readJSONFile('./package.json');
 
 const {
-  firestoreStatusEnabled,
+  saveStatusToFirestore,
+  savePostsToFirestore,
   statusUpdateCooldown,
+  savePostsToFile,
   pollingCooldown,
   extraBoards,
-  recentPostsLimit,
-  savePostsToFile
+  recentPostsLimit
 } = getConfig();
 
 const {
@@ -56,13 +57,13 @@ async function init() {
     log.info(`Sisyphus v${version} started in ${mode} mode!`);
     await thmmyToBeReachable();
     await firebase.init();
-    if (firestoreStatusEnabled)
+    if (saveStatusToFirestore)
       firebase.saveInitialStatus(version, mode, startUpTimestamp);
     log.info(`Logging in to thmmy.gr as ${thmmyUsername}...`);
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
     log.info('Login successful!');
     await markBackedUpTopicsAsUnread(); // In case of an unexpected restart
-    if (firestoreStatusEnabled)
+    if (saveStatusToFirestore)
       setTimeout(statusUpdater, statusUpdateCooldown);
     log.verbose('Initialization successful!');
   } catch (error) {
@@ -146,7 +147,8 @@ function savePosts(posts) {
   // Log this case, as it should probably be investigated
   if (posts.length === 0)
     log.warn('An empty array of posts will be saved!');
-  firebase.savePosts(posts);
+  if (savePostsToFirestore)
+    firebase.savePosts(posts);
   if (savePostsToFile)
     writePostsToFile(posts);
 }
