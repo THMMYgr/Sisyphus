@@ -125,16 +125,18 @@ async function retrievePosts() {
         savePosts(posts);
         const newPosts = posts.filter(post => post.postId > latestPostId);
         if (newPosts.length > 0) {
+          log.verbose(`Found ${newPosts.length} new post(s)!`);
           newPosts.forEach(post => {
             if (post.postId > latestPostId)
               latestPostId = post.postId;
           });
           await pushNewPostsToFirebase(newPosts);
         } else
-          log.verbose('...but no new posts were found.');
+          log.verbose('...but no new posts were found.'); // e.g. a post was deleted
+
         postsHash = currentHash; // This belongs here to make Sisyphus retry for this hash in case of error
       } else
-        log.verbose('No new posts.');
+        log.verbose('No new posts were found.');
     }
   } else
     log.error('Received malformed posts!');
@@ -151,41 +153,38 @@ function savePosts(posts) {
 
 // For FCM messages (push notifications)
 async function pushNewPostsToFirebase(newPosts) {
-  if (newPosts.length > 0) {
-    log.verbose(`Found ${newPosts.length} new post(s)!`);
-    newPosts.forEach(post => {
-      stringifyJSONValues(post);
-    });
+  newPosts.forEach(post => {
+    stringifyJSONValues(post);
+  });
 
-    newPosts.reverse();
+  newPosts.reverse();
 
-    backupTopicsToBeMarked(newPosts);
+  backupTopicsToBeMarked(newPosts);
 
-    const newBoardPosts = [];
-    for (let i = 0; i < newPosts.length; i++) {
-      // We need all the topic's boards, but, unfortunately, this will also mark the topic as read
-      const boards = await getTopicBoards(newPosts[i].topicId, { cookieJar });
-      // We mark the topic as unread again
-      await markTopicAsUnread(newPosts[i].topicId, cookieJar, { sesc });
-      boards.forEach(board => {
-        let newBoardPost = JSON.parse(JSON.stringify(newPosts[i])); // Deep cloning
-        newBoardPost = Object.assign(newBoardPost, board);
-        newBoardPost.boardId = newBoardPost.boardId.toString();
-        newBoardPost.boardIds = JSON.stringify(boards.map(b => b.boardId));
-        newBoardPosts.push(newBoardPost);
-      });
-    }
-    // Everything was marked as unread successfully and no longer needed
-    clearBackedUpTopicsToBeMarked();
-
-    newPosts.forEach(newPost => {
-      firebase.sendMessage(newPost.topicId, newPost);
-    });
-
-    newBoardPosts.forEach(newBoardPost => {
-      firebase.sendMessage(`b${newBoardPost.boardId}`, newBoardPost);
+  const newBoardPosts = [];
+  for (let i = 0; i < newPosts.length; i++) {
+    // We need all the topic's boards, but, unfortunately, this will also mark the topic as read
+    const boards = await getTopicBoards(newPosts[i].topicId, { cookieJar });
+    // We mark the topic as unread again
+    await markTopicAsUnread(newPosts[i].topicId, cookieJar, { sesc });
+    boards.forEach(board => {
+      let newBoardPost = JSON.parse(JSON.stringify(newPosts[i])); // Deep cloning
+      newBoardPost = Object.assign(newBoardPost, board);
+      newBoardPost.boardId = newBoardPost.boardId.toString();
+      newBoardPost.boardIds = JSON.stringify(boards.map(b => b.boardId));
+      newBoardPosts.push(newBoardPost);
     });
   }
+  // Everything was marked as unread successfully and no longer needed
+  clearBackedUpTopicsToBeMarked();
+
+  newPosts.forEach(newPost => {
+    firebase.sendMessage(newPost.topicId, newPost);
+  });
+
+  newBoardPosts.forEach(newBoardPost => {
+    firebase.sendMessage(`b${newBoardPost.boardId}`, newBoardPost);
+  });
 }
 
 // ---------- BACKED UP TOPICS ----------
@@ -208,14 +207,16 @@ async function markBackedUpTopicsAsUnread() {
         }));
       });
 
+      const topicsStr = topicsToBeMarkedAsUnread.join(', ');
+
       Promise.all(markTopicAsUnreadPromises)
         .then(() => {
-          log.info('Marked backed up topics as unread.');
+          log.info(`Marked backed up topics (${topicsStr}) as unread.`);
           clearBackedUpTopicsToBeMarked();
           resolve();
         })
         .catch(error => {
-          log.error('Failed to mark backed up topics as unread.');
+          log.error(`Failed to mark backed up topics (${topicsStr}) as unread!`);
           reject(error);
         });
     } else resolve();
