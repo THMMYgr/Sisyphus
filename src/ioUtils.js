@@ -106,9 +106,11 @@ function clearBackedUpTopicsToBeMarked() {
 function getTopicsToBeMarked() {
   try {
     const filePath = path.join(outDir, topicsToBeMarkedFile);
-    if (fs.statSync(filePath)) return JSON.parse(fs.readFileSync(filePath));
+    if (fs.statSync(filePath))
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   } catch (error) {
-    if (error.code !== 'ENOENT') log.warn(`Error reading topics-to-be-marked-as-unread backup: ${error}`);
+    if (error.code !== 'ENOENT')
+      log.warn(`Error reading topics-to-be-marked-as-unread backup: ${error}`);
   }
   return [];
 }
