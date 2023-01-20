@@ -1,6 +1,7 @@
 {
     "firestoreSisyphusCollection": "sisyphus",
     "firestoreSisyphusStatusDocument": "status",
+    "firestoreStatusEnabled": true,
     "firestoreVersionField": "version",
     "firestoreModeField": "mode",
     "firestoreStartUpDateTimeField": "start_up_date_time",

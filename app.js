@@ -30,6 +30,7 @@ import {
 const { version } = readJSONFile('./package.json');
 
 const {
+  firestoreStatusEnabled,
   statusUpdateCooldown,
   pollingCooldown,
   extraBoards,
@@ -55,12 +56,14 @@ async function init() {
     log.info(`Sisyphus v${version} started in ${mode} mode!`);
     await thmmyToBeReachable();
     await firebase.init();
-    firebase.saveInitialStatus(version, mode, startUpTimestamp);
+    if (firestoreStatusEnabled)
+      firebase.saveInitialStatus(version, mode, startUpTimestamp);
     log.info(`Logging in to thmmy.gr as ${thmmyUsername}...`);
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
     log.info('Login successful!');
     await markBackedUpTopicsAsUnread(); // In case of an unexpected restart
-    setTimeout(statusUpdater, statusUpdateCooldown);
+    if (firestoreStatusEnabled)
+      setTimeout(statusUpdater, statusUpdateCooldown);
     log.verbose('Initialization successful!');
   } catch (error) {
     setErrorCode(error);
