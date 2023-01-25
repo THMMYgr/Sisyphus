@@ -131,6 +131,7 @@ async function retrievePosts() {
             if (post.postId > latestPostId)
               latestPostId = post.postId;
           });
+          log.verbose(`Latest postID: ${latestPostId}`);
           await pushNewPostsToFirebase(newPosts);
         } else
           log.verbose('...but no new posts were found.'); // e.g. a post was deleted

@@ -4,7 +4,16 @@
 [![API](https://img.shields.io/badge/API-Status-blue.svg?style==flat)](https://firestore.googleapis.com/v1/projects/mthmmy-release-3aef0/databases/(default)/documents/sisyphus/status/)
 ![Last Commit](https://img.shields.io/github/last-commit/ThmmyNoLife/Sisyphus/develop.svg)
 
-Backend service that fetches data from [thmmy.gr](https://www.thmmy.gr/) and provides them to [mTHMMY](https://github.com/ThmmyNoLife/mTHMMY) through [Firebase](https://firebase.google.com/).
+A service that fetches data from [thmmy.gr](https://www.thmmy.gr/) and provides them to [mTHMMY](https://github.com/ThmmyNoLife/mTHMMY) through [Firebase](https://firebase.google.com/).
+
+## Introduction
+
+Sisyphus is a long-running process, that crawls [thmmy.gr](https://www.thmmy.gr/) and scrapes the retrieved data in order to extract the most recent posts.
+
+Its main purpose is to provide notifications for every new post to the devices that use [mTHMMY](https://github.com/ThmmyNoLife/mTHMMY) and are subscribed to the corresponding topics or boards. This is achieved through [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging).
+
+Furthermore, it stores the retrieved posts in [Firestore](https://firebase.google.com/products/firestore), exposing a REST API endpoint at https://firestore.googleapis.com/v1/projects/FIREBASE_PROJECT_ID/databases/(default)/documents/thmmy/recent_posts/.
+Another endpoint at https://firestore.googleapis.com/v1/projects/FIREBASE_PROJECT_ID/databases/(default)/documents/sisyphus/status provides useful information about the current status of the service.
 
 ## Usage
 
@@ -23,25 +32,21 @@ service cloud.firestore {
   }
 }
 ```
-
-This will also expose a REST API endpoint at https://firestore.googleapis.com/v1/projects/FIREBASE_PROJECT_ID/databases/(default)/documents/thmmy/recent_posts/,
-that will publicly provide the retrieved recent posts.
-
-Furthermore, another endpoint at https://firestore.googleapis.com/v1/projects/FIREBASE_PROJECT_ID/databases/(default)/documents/sisyphus/status will provide useful information about the app's status.
+A *dedicated* thmmy.gr account will also be required. **DO NOT** use this account for any other purpose.
 
 ### Development
 
 Install dependencies using [npm](https://www.npmjs.com/):
 
-```bash
+```shell
 npm install
 ```
 
 Then set up the required configuration in the *config* directory by adding the *serviceAccountKey.json* there and by editing the *config.json* file.
 
-Finally, start the app:
+Finally, start the app with:
 
-```bash
+```shell
 npm start
 ```
 
@@ -52,14 +57,16 @@ npm start
 The proposed way to run Sisyphus in production is by using [Docker](https://www.docker.com/).
 
 After installing Docker, clone Sisyphus using git:
-```bash
+
+```shell
 git clone -b master --depth=1 https://github.com/ThmmyNoLife/Sisyphus.git Sisyphus
 ```
 
-Navigate inside *./Sisyphus/config* directory, edit the existing files and add a valid *serviceAccountKey.json* file.
+Navigate inside *./Sisyphus/config* directory, edit the existing files as needed and add a valid *serviceAccountKey.json* file.
 
 From *./Sisyphus* run the app in detached mode with:
-```bash
+
+```shell
 docker compose up -d
 ```
 
