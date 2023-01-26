@@ -7,7 +7,7 @@ import { getMessaging } from 'firebase-admin/messaging';
 
 import moment from 'moment-timezone';
 
-import { getConfig, getServiceAccountKey } from './ioUtils.js';
+import { getFirebaseConfig, getServiceAccountKey } from './ioUtils.js';
 import logger from './logger.js';
 
 const {
@@ -19,10 +19,12 @@ const {
   firestoreStatusUpdateDateTimeField,
   firestoreLatestSuccessfulIterationDateTimeField,
   firestoreNumberOfIterationsField,
+  firestoreNumberOfTopicNotificationsField,
+  firestoreNumberOfBoardNotificationsField,
   firestoreThmmyCollection,
   firestoreRecentPostsDocument,
   firestorePostsField
-} = getConfig();
+} = getFirebaseConfig();
 
 const serviceAccount = getServiceAccountKey();
 
@@ -30,6 +32,9 @@ const log = logger.child({ tag: 'Firebase' });
 
 let sisyphusStatusDocRef, recentPostsDocRef; // Firestore document references
 let messaging;
+
+let topicMessageId = 0, boardMessageId = 0;
+let nTopicMessages = 0, nBoardMessages = 0;
 
 async function init() {
   const app = initializeApp({
@@ -46,11 +51,11 @@ async function init() {
 }
 
 function sendMessage(topic, post) {
-  let messageInfo;
-  if (!topic.includes('b'))
-    messageInfo = `TOPIC message (topicId: ${post.topicId}, postId: ${post.postId})`;
-  else
-    messageInfo = `BOARD message (boardId: ${post.boardId}, topicId: ${post.topicId}, postId: ${post.postId})`;
+  const isTopicMessage = !topic.includes('b');
+  const messageInfo = isTopicMessage
+    ? `TOPIC message (topicMessageId: ${++topicMessageId}, topicId: ${post.topicId}, postId: ${post.postId})`
+    : `BOARD message (boardMessageId: ${++boardMessageId}, boardId: ${post.boardId}, `
+    + `topicId: ${post.topicId}, postId: ${post.postId})`;
 
   messaging.sendToTopic(`/topics/${topic}`, {
     data: post
@@ -58,6 +63,7 @@ function sendMessage(topic, post) {
     priority: 'high'
   })
     .then(response => {
+      isTopicMessage ? nTopicMessages++ : nBoardMessages++;
       log.info(`Successfully sent ${messageInfo} with messageId: ${response.messageId}`);
     })
     .catch(error => {
@@ -86,7 +92,12 @@ function saveInitialStatus(version, mode, startUpTimestamp) {
     {
       [firestoreVersionField]: version,
       [firestoreModeField]: mode,
-      [firestoreStartUpDateTimeField]: moment.tz(startUpTimestamp, 'Europe/Athens').format()
+      [firestoreStartUpDateTimeField]: moment.tz(startUpTimestamp, 'Europe/Athens').format(),
+      [firestoreStatusUpdateDateTimeField]: moment.tz('Europe/Athens').format(),
+      [firestoreLatestSuccessfulIterationDateTimeField]: null,
+      [firestoreNumberOfIterationsField]: 0,
+      [firestoreNumberOfTopicNotificationsField]: 0,
+      [firestoreNumberOfBoardNotificationsField]: 0
     }
   ).then(() => {
     log.verbose('Successfully written initial status fields to Firestore!');
@@ -103,8 +114,10 @@ async function saveStatus(nIterations, latestSuccessfulIterationTimestamp) {
     await sisyphusStatusDocRef.set(
       {
         [firestoreStatusUpdateDateTimeField]: moment.tz('Europe/Athens').format(),
+        [firestoreLatestSuccessfulIterationDateTimeField]: latestSuccessfulIterationDateTime,
         [firestoreNumberOfIterationsField]: nIterations,
-        [firestoreLatestSuccessfulIterationDateTimeField]: latestSuccessfulIterationDateTime
+        [firestoreNumberOfTopicNotificationsField]: nTopicMessages,
+        [firestoreNumberOfBoardNotificationsField]: nBoardMessages
       },
       { merge: true }
     );

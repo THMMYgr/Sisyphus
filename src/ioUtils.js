@@ -8,10 +8,12 @@ const log = logger.child({
 });
 
 const defaultConfigPath = './config/config.json';
+const defaultFirebaseConfigPath = './config/firebaseConfig.json';
 const defaultThmmyCredentialsPath = './config/thmmyCredentials.json';
 const defaultServiceAccountKeyPath = './config/serviceAccountKey.json';
 
 const dockerConfigPath = '/sisyphus-config';
+const dockerFirebaseConfigPath = '/sisyphus-firebase-config';
 const dockerSecretThmmyCredentialsPath = '/run/secrets/sisyphus-thmmy-credentials';
 const dockerSecretServiceAccountKeyPath = '/run/secrets/sisyphus-service-account-key';
 
@@ -28,6 +30,12 @@ function getConfig() {
   return fs.existsSync(dockerConfigPath)
     ? readJSONFile(dockerConfigPath)
     : readJSONFile(defaultConfigPath);
+}
+
+function getFirebaseConfig() {
+  return fs.existsSync(dockerFirebaseConfigPath)
+    ? readJSONFile(dockerFirebaseConfigPath)
+    : readJSONFile(defaultFirebaseConfigPath);
 }
 
 function getThmmyCredentials() {
@@ -98,9 +106,11 @@ function clearBackedUpTopicsToBeMarked() {
 function getTopicsToBeMarked() {
   try {
     const filePath = path.join(outDir, topicsToBeMarkedFile);
-    if (fs.statSync(filePath)) return JSON.parse(fs.readFileSync(filePath));
+    if (fs.statSync(filePath))
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   } catch (error) {
-    if (error.code !== 'ENOENT') log.warn(`Error reading topics-to-be-marked-as-unread backup: ${error}`);
+    if (error.code !== 'ENOENT')
+      log.warn(`Error reading topics-to-be-marked-as-unread backup: ${error}`);
   }
   return [];
 }
@@ -108,6 +118,7 @@ function getTopicsToBeMarked() {
 export {
   readJSONFile,
   getConfig,
+  getFirebaseConfig,
   getThmmyCredentials,
   getServiceAccountKey,
   writePostsToFile,

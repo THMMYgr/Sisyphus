@@ -1,18 +1,9 @@
 {
-    "firestoreSisyphusCollection": "sisyphus",
-    "firestoreSisyphusStatusDocument": "status",
-    "firestoreVersionField": "version",
-    "firestoreModeField": "mode",
-    "firestoreStartUpDateTimeField": "start_up_date_time",
-    "firestoreStatusUpdateDateTimeField": "status_update_date_time",
-    "firestoreLatestSuccessfulIterationDateTimeField": "latest_successful_iteration_date_time",
-    "firestoreNumberOfIterationsField": "number_of_iterations",
-    "firestoreThmmyCollection": "thmmy",
-    "firestoreRecentPostsDocument": "recent_posts",
-    "firestorePostsField": "posts",
+    "saveStatusToFirestore": true,
+    "savePostsToFirestore": true,
+    "savePostsToFile": true,
     "statusUpdateCooldown":  60000,
     "pollingCooldown": 3000,
     "recentPostsLimit": 60,
-    "extraBoards": [241, 397, 438, 370, 221, 532 , 238],
-    "savePostsToFile": true
+    "extraBoards": [241, 397, 438, 370, 221, 532 , 238]
 }

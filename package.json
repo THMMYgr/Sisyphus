@@ -1,6 +1,6 @@
 {
   "name": "sisyphus",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Eternally condemned to provide data from thmmy.gr",
   "type": "module",
   "private": true,
@@ -21,7 +21,7 @@
     "lint-fix": "eslint . --fix"
   },
   "dependencies": {
-    "firebase-admin": "~11.4.1",
+    "firebase-admin": "~11.5.0",
     "is-online": "~10.0.0",
     "moment-timezone": "~0.5.37",
     "thmmy": "~0.13.0",
@@ -30,9 +30,9 @@
   },
   "devDependencies": {
     "cross-env": "~7.0.3",
-    "eslint": "~8.31.0",
+    "eslint": "~8.32.0",
     "eslint-config-airbnb-base": "~15.0.0",
     "eslint-formatter-table": "~7.32.1",
-    "eslint-plugin-import": "~2.27.4"
+    "eslint-plugin-import": "~2.27.5"
   }
 }
