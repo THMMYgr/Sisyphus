@@ -1,6 +1,6 @@
 FROM node:lts-alpine
 
-LABEL version=2.5.0 maintainer="ezerous@gmail.com"
+LABEL version=3.0.0 maintainer="ezerous@gmail.com"
 
 RUN apk update && apk add nano
 
