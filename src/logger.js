@@ -9,7 +9,7 @@ if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
 const { combine, printf } = format;
 
-const logFormat = printf(info => `[${info.timestamp}] [${info.level}] ${info.tag}: ${info.message}`);
+const logFormat = printf(info => `[${info.timestamp}] [${info.level}] ${info.tag || 'Process'}: ${info.message}`);
 
 const appendTimestamp = format((info, opts) => {
   if (opts.tz) info.timestamp = moment().tz(opts.tz).format();
@@ -61,5 +61,29 @@ logger.add(new transports.Console({
   ),
   handleExceptions: true
 }));
+
+process.on('exit', code => {
+  if (code !== 130 && code !== 143) {
+    const logLevel = code === 0 ? 'info' : 'error';
+    const exitMessage = code || code === 0 ? `Exiting with code ${code}...` : 'Exiting...';
+    try {
+      logger.log(logLevel, exitMessage);
+      logger.end();
+    } finally { /* Some transport apparently failed... Oh well... */ }
+  }
+});
+
+process.on('SIGINT', handleSignal);
+process.on('SIGTERM', handleSignal);
+
+function handleSignal(signal) {
+  try {
+    logger.error(`Received ${signal} signal! Exiting...`);
+    logger.end();
+  } finally {
+    // This explicit process.ext is probably needed (https://nodejs.org/api/process.html#signal-events)
+    process.exit(signal === 'SIGINT' ? 130 : 143);
+  }
+}
 
 export default logger;
