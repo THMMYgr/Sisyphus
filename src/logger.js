@@ -1,9 +1,9 @@
 import { isMainThread } from 'node:worker_threads';
 import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
+import fs from 'node:fs';
 import { createLogger, format, transports } from 'winston';
 import 'winston-daily-rotate-file';
 import moment from 'moment-timezone';
-import fs from 'fs';
 
 const logDir = 'log';
 
@@ -16,7 +16,7 @@ if (isMainThread) {
     await setTimeoutPromise(100);
 }
 
-const logLevel = process.env.LOG_LEVEL || 'verbose';
+const logLevel = process.env.LOG_LEVEL || 'debug';
 
 const logTag = isMainThread ? 'Process' : 'Worker';
 const fileNameProp = isMainThread ? 'app' : 'worker';
@@ -63,7 +63,6 @@ const logger = createLogger({
 });
 
 logger.add(new transports.Console({
-  level: process.env.NODE_ENV === 'production' ? logLevel : 'debug',
   format: combine(
     format.colorize(),
     appendTimestamp({

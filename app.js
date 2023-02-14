@@ -1,7 +1,8 @@
 import { Worker } from 'node:worker_threads';
 import logger from './src/logger.js';
 import './src/exitHandlers.js';
-import { writeStatus } from './src/server.js';
+import startServer from './src/server.js';
+import { TYPE_INFO, TYPE_POSTS, TYPE_STATUS, WORKER_INIT_SUCCESS } from './src/constants.js';
 
 const log = logger.child({ tag: 'App' });
 
@@ -13,7 +14,11 @@ worker.once('online', () => {
 });
 
 worker.on('message', message => {
-  writeStatus(message);
+  const { data, type } = message;
+  if (type === TYPE_INFO && data === WORKER_INIT_SUCCESS){
+    log.verbose('Starting Express server...');  //TODO: Make it optional
+    startServer(worker);
+  }
 });
 
 // Terminate main thread when worker exits

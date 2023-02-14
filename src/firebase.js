@@ -17,10 +17,10 @@ const {
   firestoreSisyphusStatusDocument,
   firestoreVersionField,
   firestoreModeField,
-  firestoreStartUpDateTimeField,
-  firestoreStatusUpdateDateTimeField,
+  firestoreStartUpTimeField,
+  firestoreStatusUpdateTimeField,
   firestoreThmmyOnlineField,
-  firestoreLatestSuccessfulIterationDateTimeField,
+  firestoreLatestSuccessfulIterationTimeField,
   firestoreNumberOfIterationsField,
   firestoreNumberOfTopicNotificationsField,
   firestoreNumberOfBoardNotificationsField,
@@ -112,17 +112,17 @@ async function saveStatus() {
   } = workerStatus;
 
   try {
-    const latestSuccessfulIterationDateTime = latestSuccessfulIterationTimestamp
+    const latestSuccessfulIterationTime = latestSuccessfulIterationTimestamp
       ? moment.tz(latestSuccessfulIterationTimestamp, 'Europe/Athens').format()
       : null;
     await sisyphusStatusDocRef.set(
       {
         [firestoreVersionField]: version,
         [firestoreModeField]: mode,
-        [firestoreStartUpDateTimeField]: moment.tz(startUpTimestamp, 'Europe/Athens').format(),
-        [firestoreStatusUpdateDateTimeField]: moment.tz('Europe/Athens').format(),
+        [firestoreStartUpTimeField]: moment.tz(startUpTimestamp, 'Europe/Athens').format(),
+        [firestoreStatusUpdateTimeField]: moment.tz('Europe/Athens').format(),
         [firestoreThmmyOnlineField]: thmmyOnline,
-        [firestoreLatestSuccessfulIterationDateTimeField]: latestSuccessfulIterationDateTime,
+        [firestoreLatestSuccessfulIterationTimeField]: latestSuccessfulIterationTime,
         [firestoreNumberOfIterationsField]: nIterations,
         [firestoreNumberOfTopicNotificationsField]: nTopicMessages,
         [firestoreNumberOfBoardNotificationsField]: nBoardMessages,

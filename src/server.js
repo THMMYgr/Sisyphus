@@ -1,28 +1,51 @@
 import express from 'express';
 import logger from './logger.js';
+import { TYPE_INFO, TYPE_POSTS, TYPE_STATUS, WORKER_INIT_SUCCESS } from './constants.js';
 
 const log = logger.child({ tag: 'Server' });
 
-const app = express();
-const port = 3000; // TODO: This should be changable by environment/ Docker
+let app;
+const port = 3000; // TODO: This should be changeable by environment/ Docker
 
-let status;
+let posts = [], status = {};
 
-// TODO: change this, also add /recent route
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
+function startServer(worker) {
+  app = express();
 
-app.get('/status', (req, res) => {
-  res.send(status);
-});
+  // TODO: change this to include version, available routes, info
+  app.get('/', (req, res) => {
+    res.send('Sisyphus API!');
+  });
 
-app.listen(port, () => {
-  log.info(`Listening on port ${port}!`);
-});
+  app.get('/posts', (req, res) => {
+    res.send(posts);
+  });
 
-function writeStatus(newStatus) {
+  app.get('/status', (req, res) => {
+    res.send(status);
+  });
+
+  app.listen(port, () => {
+    log.verbose(`Initialized and listening on port ${port}!`);
+    log.info(`Posts endpoint is available at: http://localhost:${port}/posts`);
+    log.info(`Status endpoint is available at: http://localhost:${port}/status`);
+  });
+
+  worker.on('message', message => {
+    const { data, type } = message;
+    if (type === TYPE_POSTS)
+      setPosts(data);
+    else if (type === TYPE_STATUS)
+      setStatus(data);
+  });
+}
+
+function setPosts(newPosts) {
+  posts = newPosts;
+}
+
+function setStatus(newStatus) {
   status = newStatus;
 }
 
-export { writeStatus };
+export default startServer;

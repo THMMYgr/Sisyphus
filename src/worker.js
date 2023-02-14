@@ -1,5 +1,5 @@
-import { parentPort } from 'worker_threads';
-import { performance } from 'perf_hooks';
+import { parentPort } from 'node:worker_threads';
+import { performance } from 'node:perf_hooks';
 import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
 import {
   getUnreadPosts,
@@ -16,6 +16,7 @@ import {
 import * as firebase from './firebase.js';
 import logger from './logger.js';
 import { hash, stringifyJSONValues } from './utils.js';
+import { TYPE_INFO, TYPE_POSTS, TYPE_STATUS, WORKER_INIT_SUCCESS } from './constants.js';
 
 import {
   readJSONFile,
@@ -60,7 +61,7 @@ const statusObj = {
 const handler = {
   set(target, key, value) {
     target[key] = value;
-    parentPort.postMessage({ message: statusObj }); // TODO: add uptime (?), add Firebase stuff as well (?)
+    sendToParent(TYPE_STATUS, statusObj); // TODO: add uptime (?), add Firebase stuff as well (?)
     return true;
   }
 };
@@ -78,6 +79,7 @@ async function run() {
     log.info('Login successful!');
     await markBackedUpTopicsAsUnread(); // In case of an unexpected restart
     log.verbose('Initialization successful!');
+    sendToParent(TYPE_INFO, WORKER_INIT_SUCCESS);
     setImmediate(loop);
   } catch (error) {
     setErrorCode(error);
@@ -161,6 +163,9 @@ function savePosts(posts) {
   // Log this case, as it should probably be investigated
   if (posts.length === 0)
     log.warn('An empty array of posts will be saved!');
+
+  sendToParent(TYPE_POSTS, posts);
+
   if (savePostsToFirestore)
     firebase.savePosts(posts);
   if (savePostsToFile)
@@ -267,9 +272,14 @@ function mergePosts(posts1, posts2) {
   return (recentPostsLimit < posts.length) ? posts.slice(0, recentPostsLimit) : posts;
 }
 
+// ---------- MAIN THREAD COMMUNICATION ----------
 parentPort.once('message', message => {
   if (message === 'run') {
-    log.verbose('Starting Sisyphus...');
+    log.verbose('Starting sisyphean task...');
     setImmediate(run);
   }
 });
+
+function sendToParent(type, data) {
+  parentPort.postMessage({ type, data });
+}
