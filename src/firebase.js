@@ -7,6 +7,8 @@ import { getMessaging } from 'firebase-admin/messaging';
 
 import moment from 'moment-timezone';
 
+import isOnline from 'is-online';
+import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
 import { getFirebaseConfig, getServiceAccountKey } from './ioUtils.js';
 import logger from './logger.js';
 
@@ -17,26 +19,32 @@ const {
   firestoreModeField,
   firestoreStartUpDateTimeField,
   firestoreStatusUpdateDateTimeField,
+  firestoreThmmyOnlineField,
   firestoreLatestSuccessfulIterationDateTimeField,
   firestoreNumberOfIterationsField,
   firestoreNumberOfTopicNotificationsField,
   firestoreNumberOfBoardNotificationsField,
   firestoreThmmyCollection,
   firestoreRecentPostsDocument,
-  firestorePostsField
+  firestorePostsField,
+  firestoreStatusUpdateIntervalField,
+  firestoreStatusUpdateIntervalValue
 } = getFirebaseConfig();
 
 const serviceAccount = getServiceAccountKey();
 
 const log = logger.child({ tag: 'Firebase' });
+const reachableCheckCooldown = 2000;
 
 let sisyphusStatusDocRef, recentPostsDocRef; // Firestore document references
 let messaging;
 
+let workerStatus;
+
 let topicMessageId = 0, boardMessageId = 0;
 let nTopicMessages = 0, nBoardMessages = 0;
 
-async function init() {
+async function init(status) {
   const app = initializeApp({
     credential: cert(serviceAccount)
   });
@@ -46,6 +54,12 @@ async function init() {
 
   sisyphusStatusDocRef = firestore.collection(firestoreSisyphusCollection).doc(firestoreSisyphusStatusDocument);
   recentPostsDocRef = firestore.collection(firestoreThmmyCollection).doc(firestoreRecentPostsDocument);
+
+  // If worker passes initial status, Initialize Firebase status updater
+  if (status) {
+    workerStatus = status;
+    setImmediate(statusUpdater);
+  }
 
   log.info(`Initialization successful for project ${serviceAccount.project_id}!`);
 }
@@ -87,37 +101,32 @@ function savePosts(posts) {
     });
 }
 
-function saveInitialStatus(version, mode, startUpTimestamp) {
-  sisyphusStatusDocRef.set(
-    {
-      [firestoreVersionField]: version,
-      [firestoreModeField]: mode,
-      [firestoreStartUpDateTimeField]: moment.tz(startUpTimestamp, 'Europe/Athens').format(),
-      [firestoreStatusUpdateDateTimeField]: moment.tz('Europe/Athens').format(),
-      [firestoreLatestSuccessfulIterationDateTimeField]: null,
-      [firestoreNumberOfIterationsField]: 0,
-      [firestoreNumberOfTopicNotificationsField]: 0,
-      [firestoreNumberOfBoardNotificationsField]: 0
-    }
-  ).then(() => {
-    log.verbose('Successfully written initial status fields to Firestore!');
-  }).catch(error => {
-    logFirebaseError(error, 'Error while writing initial status fields to Firestore.');
-  });
-}
+async function saveStatus() {
+  const {
+    version,
+    mode,
+    startUpTimestamp,
+    thmmyOnline,
+    nIterations,
+    latestSuccessfulIterationTimestamp
+  } = workerStatus;
 
-async function saveStatus(nIterations, latestSuccessfulIterationTimestamp) {
   try {
     const latestSuccessfulIterationDateTime = latestSuccessfulIterationTimestamp
       ? moment.tz(latestSuccessfulIterationTimestamp, 'Europe/Athens').format()
       : null;
     await sisyphusStatusDocRef.set(
       {
+        [firestoreVersionField]: version,
+        [firestoreModeField]: mode,
+        [firestoreStartUpDateTimeField]: moment.tz(startUpTimestamp, 'Europe/Athens').format(),
         [firestoreStatusUpdateDateTimeField]: moment.tz('Europe/Athens').format(),
+        [firestoreThmmyOnlineField]: thmmyOnline,
         [firestoreLatestSuccessfulIterationDateTimeField]: latestSuccessfulIterationDateTime,
         [firestoreNumberOfIterationsField]: nIterations,
         [firestoreNumberOfTopicNotificationsField]: nTopicMessages,
-        [firestoreNumberOfBoardNotificationsField]: nBoardMessages
+        [firestoreNumberOfBoardNotificationsField]: nBoardMessages,
+        [firestoreStatusUpdateIntervalField]: firestoreStatusUpdateIntervalValue
       },
       { merge: true }
     );
@@ -127,6 +136,16 @@ async function saveStatus(nIterations, latestSuccessfulIterationTimestamp) {
   }
 }
 
+async function statusUpdater() {
+  if (!await isOnline()) {
+    log.error('No connection to the Internet! Waiting to be restored...');
+    while (!await isOnline())
+      await setTimeoutPromise(reachableCheckCooldown);
+  }
+  await saveStatus();
+  setTimeout(statusUpdater, firestoreStatusUpdateIntervalValue);
+}
+
 function logFirebaseError(error, message) {
   log.error(message);
   (error.errorInfo && error.errorInfo.code)
@@ -134,4 +153,4 @@ function logFirebaseError(error, message) {
     : log.error(`${error}`);
 }
 
-export { init, sendMessage, savePosts, saveInitialStatus, saveStatus };
+export { init, sendMessage, savePosts, saveStatus };

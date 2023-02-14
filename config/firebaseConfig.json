@@ -5,11 +5,14 @@
     "firestoreModeField": "mode",
     "firestoreStartUpDateTimeField": "start_up_date_time",
     "firestoreStatusUpdateDateTimeField": "status_update_date_time",
+    "firestoreThmmyOnlineField": "thmmy_online",
     "firestoreLatestSuccessfulIterationDateTimeField": "latest_successful_iteration_date_time",
     "firestoreNumberOfIterationsField": "number_of_iterations",
     "firestoreNumberOfTopicNotificationsField": "number_of_topic_notifications",
     "firestoreNumberOfBoardNotificationsField": "number_of_board_notifications",
     "firestoreThmmyCollection": "thmmy",
     "firestoreRecentPostsDocument": "recent_posts",
-    "firestorePostsField": "posts"
+    "firestorePostsField": "posts",
+    "firestoreStatusUpdateIntervalField":  "status_update_interval",
+    "firestoreStatusUpdateIntervalValue":  60000
 }

@@ -12,7 +12,6 @@ import {
   setErrorCode,
   EINVALIDSESC
 } from 'thmmy';
-import isOnline from 'is-online';
 
 import * as firebase from './firebase.js';
 import logger from './logger.js';
@@ -33,7 +32,6 @@ const { version } = readJSONFile('./package.json');
 const {
   saveStatusToFirestore,
   savePostsToFirestore,
-  statusUpdateCooldown,
   savePostsToFile,
   pollingCooldown,
   extraBoards,
@@ -46,26 +44,39 @@ const {
 } = getThmmyCredentials();
 
 const log = logger.child({ tag: 'Worker' });
-const mode = (process.env.NODE_ENV === 'production') ? 'production' : 'development';
 const reachableCheckCooldown = 2000;
 
-let startUpTimestamp, latestSuccessfulIterationTimestamp,
-  nIterations = 0, cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
+let cookieJar, sesc, postsHash, latestPostId, topicIdsToBeMarked = [];
 
+// Status object and its proxy, that updates main thread on changes
+const statusObj = {
+  version,
+  mode: (process.env.NODE_ENV === 'production') ? 'production' : 'development',
+  startUpTimestamp: +new Date(),
+  thmmyOnline: null,
+  nIterations: 0,
+  latestSuccessfulIterationTimestamp: null
+};
+const handler = {
+  set(target, key, value) {
+    target[key] = value;
+    parentPort.postMessage({ message: statusObj }); // TODO: add uptime (?), add Firebase stuff as well (?)
+    return true;
+  }
+};
+const status = new Proxy(statusObj, handler);
+
+// ---------- MAIN FUNCTIONS ----------
 async function run() {
   try {
-    startUpTimestamp = +new Date();
-    log.info(`Sisyphus v${version} started in ${mode} mode!`);
+    log.info(`Sisyphus v${version} started in ${status.mode} mode!`);
     await thmmyToBeReachable();
-    await firebase.init();
-    if (saveStatusToFirestore)
-      firebase.saveInitialStatus(version, mode, startUpTimestamp);
+    await firebase.init(saveStatusToFirestore ? statusObj : null); // TODO: notify if status is not going to be saved
     log.info(`Logging in to thmmy.gr as ${thmmyUsername}...`);
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
+    status.thmmyOnline = true;
     log.info('Login successful!');
     await markBackedUpTopicsAsUnread(); // In case of an unexpected restart
-    if (saveStatusToFirestore)
-      setTimeout(statusUpdater, statusUpdateCooldown);
     log.verbose('Initialization successful!');
     setImmediate(loop);
   } catch (error) {
@@ -77,12 +88,12 @@ async function run() {
 
 async function loop() {
   try {
-    nIterations++;
-    log.verbose(`Current iteration: ${nIterations}`);
+    status.nIterations++;
+    log.verbose(`Current iteration: ${status.nIterations}`);
     await refreshSessionDataIfNeeded();
     const tStart = performance.now();
     await retrievePosts();
-    latestSuccessfulIterationTimestamp = +new Date();
+    status.latestSuccessfulIterationTimestamp = +new Date();
     const iterationTime = ((performance.now() - tStart) / 1000).toFixed(3);
     log.verbose(`Iteration finished in ${iterationTime} seconds.`);
   } catch (error) {
@@ -117,7 +128,7 @@ async function retrievePosts() {
 
   if (Array.isArray(posts)) {
     log.verbose(`Successfully retrieved ${posts.length} posts!`);
-    if (nIterations === 1) {
+    if (status.nIterations === 1) {
       savePosts(posts);
       postsHash = hash(JSON.stringify(posts));
       latestPostId = posts.length > 0 ? posts[0].postId : -1;
@@ -228,17 +239,6 @@ async function markBackedUpTopicsAsUnread() {
   }));
 }
 
-// ---------- STATUS UPDATER ----------
-async function statusUpdater() {
-  if (!await isOnline()) {
-    log.error('No connection to the Internet! Waiting to be restored...');
-    while (!await isOnline())
-      await setTimeoutPromise(reachableCheckCooldown);
-  }
-  await firebase.saveStatus(nIterations, latestSuccessfulIterationTimestamp);
-  setTimeout(statusUpdater, statusUpdateCooldown);
-}
-
 // ---------- THMMY UTILS ----------
 async function refreshSessionDataIfNeeded() {
   if (!isThmmyCookieExistent(cookieJar)) {
@@ -251,9 +251,11 @@ async function refreshSessionDataIfNeeded() {
 
 async function thmmyToBeReachable() {
   if (!await isForumReachable()) {
+    status.thmmyOnline = false;
     log.error('No connection to thmmy.gr! Waiting to be restored...');
     while (!await isForumReachable())
       await setTimeoutPromise(reachableCheckCooldown);
+    status.thmmyOnline = true;
     log.info('Connection to thmmy.gr is restored!');
   }
 }
