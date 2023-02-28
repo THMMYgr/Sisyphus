@@ -2,7 +2,7 @@ import { Worker } from 'node:worker_threads';
 import logger from './src/logger.js';
 import './src/exitHandlers.js';
 import startServer from './src/server.js';
-import { TYPE_INFO, TYPE_POSTS, TYPE_STATUS, WORKER_INIT_SUCCESS } from './src/constants.js';
+import { TYPE_WORKER_INIT } from './src/constants.js';
 
 const log = logger.child({ tag: 'App' });
 
@@ -14,9 +14,9 @@ worker.once('online', () => {
 });
 
 worker.on('message', message => {
-  const { data, type } = message;
-  if (type === TYPE_INFO && data === WORKER_INIT_SUCCESS){
-    log.verbose('Starting Express server...');  //TODO: Make it optional
+  const { type } = message;
+  if (type === TYPE_WORKER_INIT) {
+    log.verbose('Starting Express server...');
     startServer(worker);
   }
 });

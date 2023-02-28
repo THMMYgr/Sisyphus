@@ -16,7 +16,7 @@ import {
 import * as firebase from './firebase.js';
 import logger from './logger.js';
 import { hash, stringifyJSONValues } from './utils.js';
-import { TYPE_INFO, TYPE_POSTS, TYPE_STATUS, WORKER_INIT_SUCCESS } from './constants.js';
+import { TYPE_WORKER_INIT, TYPE_POSTS, TYPE_STATUS } from './constants.js';
 
 import {
   readJSONFile,
@@ -72,14 +72,14 @@ async function run() {
   try {
     log.info(`Sisyphus v${version} started in ${status.mode} mode!`);
     await thmmyToBeReachable();
-    await firebase.init(saveStatusToFirestore ? statusObj : null); // TODO: notify if status is not going to be saved
+    await firebase.init(saveStatusToFirestore ? statusObj : null);
     log.info(`Logging in to thmmy.gr as ${thmmyUsername}...`);
     ({ cookieJar, sesc } = await login(thmmyUsername, thmmyPassword));
     status.thmmyOnline = true;
     log.info('Login successful!');
     await markBackedUpTopicsAsUnread(); // In case of an unexpected restart
     log.verbose('Initialization successful!');
-    sendToParent(TYPE_INFO, WORKER_INIT_SUCCESS);
+    sendToParent(TYPE_WORKER_INIT, { version });
     setImmediate(loop);
   } catch (error) {
     setErrorCode(error);
@@ -167,7 +167,7 @@ function savePosts(posts) {
   sendToParent(TYPE_POSTS, posts);
 
   if (savePostsToFirestore)
-    firebase.savePosts(posts);
+    firebase.savePosts({ posts, nIterations: status.nIterations });
   if (savePostsToFile)
     writePostsToFile(posts);
 }

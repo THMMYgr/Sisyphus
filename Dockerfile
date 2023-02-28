@@ -15,4 +15,9 @@ RUN npm ci
 # Bundle app source
 COPY . .
 
+# Set the port for the API endpoints
+ENV PORT=3000
+
+EXPOSE $PORT
+
 CMD [ "npm", "start" ]

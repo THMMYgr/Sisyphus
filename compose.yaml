@@ -1,5 +1,6 @@
 services:
   sisyphus:
+    container_name: sisyphus-service
     build:
        context: .
     volumes:

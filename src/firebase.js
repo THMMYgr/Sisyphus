@@ -55,11 +55,12 @@ async function init(status) {
   sisyphusStatusDocRef = firestore.collection(firestoreSisyphusCollection).doc(firestoreSisyphusStatusDocument);
   recentPostsDocRef = firestore.collection(firestoreThmmyCollection).doc(firestoreRecentPostsDocument);
 
-  // If worker passes initial status, Initialize Firebase status updater
+  // If worker passes initial status, initialize Firebase status updater
   if (status) {
     workerStatus = status;
     setImmediate(statusUpdater);
-  }
+  } else
+    log.warn('Configured to skip saving status in Firestore!');
 
   log.info(`Initialization successful for project ${serviceAccount.project_id}!`);
 }
@@ -81,11 +82,11 @@ function sendMessage(topic, post) {
       log.info(`Successfully sent ${messageInfo} with messageId: ${response.messageId}`);
     })
     .catch(error => {
-      logFirebaseError(error, `Error sending ${messageInfo}`);
+      logFirebaseError(error, `Error sending ${messageInfo}!`);
     });
 }
 
-function savePosts(posts) {
+function savePosts({ posts, nIterations }) {
   // Because Firestore doesn't support JavaScript objects with custom prototypes
   // (i.e. objects that were created via the 'new' operator).
   posts = posts.map(post => JSON.parse(JSON.stringify(post)));
@@ -94,10 +95,11 @@ function savePosts(posts) {
 
   recentPostsDocRef.set({ [firestorePostsField]: posts })
     .then(() => {
-      log.info(`Successfully written ${posts.length} recent posts to Firestore (latest postID: ${latestPostId})!`);
+      log.info(`Successfully written ${posts.length} recent posts to Firestore `
+        + `(latest postID:${latestPostId}, iterations: ${nIterations})!`);
     })
     .catch(error => {
-      logFirebaseError(error, 'Error while writing recent posts to Firestore');
+      logFirebaseError(error, 'Error while writing recent posts to Firestore!');
     });
 }
 
@@ -132,7 +134,7 @@ async function saveStatus() {
     );
     log.verbose('Successfully written updated status fields to Firestore!');
   } catch (error) {
-    logFirebaseError(error, 'Error while writing updated status fields to Firestore.');
+    logFirebaseError(error, 'Error while writing updated status fields to Firestore!');
   }
 }
 
@@ -148,9 +150,7 @@ async function statusUpdater() {
 
 function logFirebaseError(error, message) {
   log.error(message);
-  (error.errorInfo && error.errorInfo.code)
-    ? log.error(`${error.errorInfo.code}`)
-    : log.error(`${error}`);
+  log.error(error);
 }
 
 export { init, sendMessage, savePosts, saveStatus };
