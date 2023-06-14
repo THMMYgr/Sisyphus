@@ -41,7 +41,7 @@ let messaging;
 
 let workerStatus;
 
-let topicMessageId = 0, boardMessageId = 0;
+let topicMessageId = 0, boardMessageId = 0; // For debugging purposes
 let nTopicMessages = 0, nBoardMessages = 0;
 
 async function init(status) {
@@ -82,6 +82,9 @@ function sendMessage(topic, post) {
       log.info(`Successfully sent ${messageInfo} with messageId: ${response.messageId}`);
     })
     .catch(error => {
+      // TODO: Retry on some errors, i.e.
+      //  error.code === messaging/server-unavailable || messaging/internal-error || messaging/unknown-error
+      //  See also: https://firebase.google.com/docs/cloud-messaging/send-message#admin
       logFirebaseError(error, `Error sending ${messageInfo}!`);
     });
 }
@@ -148,6 +151,7 @@ async function statusUpdater() {
   setTimeout(statusUpdater, firestoreStatusUpdateIntervalValue);
 }
 
+// TODO: refactor this (?)
 function logFirebaseError(error, message) {
   log.error(message);
   log.error(error);

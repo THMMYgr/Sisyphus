@@ -200,6 +200,7 @@ async function pushNewPostsToFirebase(newPosts) {
   clearBackedUpTopicsToBeMarked();
 
   newPosts.forEach(newPost => {
+    // TODO: Add 't' as (breaking for mTHMMY) change
     firebase.sendMessage(newPost.topicId, newPost);
   });
 

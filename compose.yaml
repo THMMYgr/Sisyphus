@@ -1,8 +1,8 @@
 services:
   sisyphus:
-    container_name: sisyphus-service
     build:
        context: .
+    container_name: sisyphus
     volumes:
       - log:/app/log
       - out:/app/out
